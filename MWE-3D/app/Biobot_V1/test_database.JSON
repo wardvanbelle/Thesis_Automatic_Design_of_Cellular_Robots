@@ -1,0 +1,21 @@
+{
+    "Gallus Gallus" : {
+            "RGBA" : [0, 0, 200, 255] ,
+            "E" : 10000000 , 
+            "RHO" : 10
+        },
+
+    "Lummus Lupulus" : {
+            "RGBA" : [230, 206, 30, 255] ,
+            "E" : 100000 , 
+            "RHO" : 100
+        },
+    
+    "Spirus Contractius": {
+        "RGBA" : [200, 0, 0, 255] ,
+        "E" : 1000000 , 
+        "RHO" : 100,
+        "CTE" : 0.5,
+        "tempPhase" : 0
+    }
+}

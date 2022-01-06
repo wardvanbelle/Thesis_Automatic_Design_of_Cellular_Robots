@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.15.1
+# v0.17.1
 
 using Markdown
 using InteractiveUtils
@@ -7,23 +7,119 @@ using InteractiveUtils
 # ╔═╡ a0bf91a0-2cfd-11ec-0378-e30d2af1ca69
 using Agents, LinearAlgebra, PlutoUI
 
-# ╔═╡ e5c501ba-a2c4-4c97-9b5b-d478da0ee6ae
+# ╔═╡ bc6daac4-40fe-4cf2-a8c7-5ccd64248f4f
+md"# Simulating Biobots In 2D"
+
+# ╔═╡ 3e4a03a7-fa8b-4b5a-8c80-baf13d31d665
+md"#### 1. Defining the Biobot and Cell struct"
+
+# ╔═╡ 70b36f1e-d167-48a3-98b9-53a615abad3b
 begin
-	@agent Particle ContinuousAgent{2} begin
-	    radius::Float64
-	    is_stuck::Bool
-	    spin_axis::Array{Float64,1}
-		direction::Float64
+	mutable struct Cell <: AbstractAgent
+		id::Int
+		pos::NTuple{2,Float64}
+	    Radius::Float64
+		Type::Symbol
+		vel::NTuple{2,Float64}
+		BiobotID::Int
 	end
+end
+
+# ╔═╡ 18181481-1e82-429d-a677-96d75b7fda38
+begin 
+	mutable struct Biobot <: AbstractAgent
+		id::Int
+		pos::NTuple{2,Float64} # point of mass of the biobot
+		Radius::Float64 # minimal radius that encapsulates every cell
+		cells::Array{Cell} # collection of all cells in the biobot
+		direction::Float64
+		vel::NTuple{2,Float64}
+	end
+end
+
+# ╔═╡ 0cc60733-9dba-4fc2-9f76-72162c07a539
+
+
+# ╔═╡ 951feb03-42eb-443c-924d-57c9765fdd35
+md"#### 2. Initializing the model"
+
+# ╔═╡ ae3b476f-1a5f-405b-922b-c207745b7b82
+
+
+# ╔═╡ 4c95a1c8-01db-414b-84ae-d634b2e14664
+md"#### 3. Defining how the agent should move"
+
+# ╔═╡ 7e669b9b-2387-4f5b-b9e3-13939ce7a132
+function move_agent!(agent::Biobot, model, stepsize)
+	for cell in agent.cells
+		cell.vel = agent.vel
+		cell.pos = cell.pos .+ cell.vel .* stepsize
+	end
+	agent.pos = agent.pos .+ agent.vel .* stepsize
+end
+
+# ╔═╡ ff6f7e55-c4f3-4b71-a717-a8a0abaa30b5
+
+
+# ╔═╡ 7d1fe696-0b8f-40b8-b618-06fa411c2e5c
+md"#### 4. Defining an agent step and a model step"
+
+# ╔═╡ 4257eeea-3be0-4b48-89e0-3a128c5b1c58
+function agent_step!(agent::Biobot, model)
 	
-	Particle(
-	    id::Int,
-	    radius::Float64,
-	    spin_clockwise::Bool,
-		direction::Float64;
-	    pos = (0.0, 0.0),
-	    is_stuck = false,
-	) = Particle(id, pos, (0.0, 0.0), radius, is_stuck, [0.0, 0.0, spin_clockwise ? -1.0 : 1.0], direction)
+    agent.direction = agent.direction + rand(model.rng, model.turning* -π/180:2π/360:model.turning*π/180)
+	agent.vel = (cos(agent.direction),sin(agent.direction))
+    move_agent!(agent, model, rand(model.rng, 0:0.001:model.max_speed))
+end
+
+# ╔═╡ a1cf04df-eff5-42b1-8901-a2b949a715eb
+
+
+# ╔═╡ 73badb82-8e57-4bf9-b0f1-237f695e32cb
+md"#### 5. The simulation"
+
+# ╔═╡ 52d0a4c2-216c-4e66-b949-f37a099935cf
+
+
+# ╔═╡ 7eb53d1a-c1d3-46d3-8a11-3541ffe56a47
+md"#### 6. Helper functions"
+
+# ╔═╡ 7d070d91-bb5b-4438-8738-d1ec013357b4
+function rand_morphology(radii)
+	pos_list = [(0.0,0.0)]
+	distmat = radii .+ radii'
+	for i in 2:length(radii)
+		#to implement
+		# 1) place cell so that it borders at least one other cell
+		# 2) check for overlap with other cells
+		# 3) when overlap choose new location --> repeat
+	end
+	# calculate new central point based on (weight + )position of cells
+	# adapt relative position (pos_list) of cells based on this
+	#return pos_list
+end
+
+# ╔═╡ 19a01da3-0fa7-4b3f-b3e4-82c4f3f2e86e
+function add_cells(central_pos, cell_type, parentID)
+	cell_list = []
+	positions = [(0.0, 0.0), (2.0, 2.0), (-2.0, 2.0)]
+	for i in 1:3
+		push!(cell_list,Cell(i,
+			central_pos .- positions[i],
+			2,# aanpassen bij elke cel
+			cell_type,
+			(0.0, 0.0),
+			parentID))
+	end
+	return cell_list
+end
+
+# ╔═╡ 682974f4-0702-4623-882f-aa8ba5a44a44
+function calc_radius(biobot::Biobot)
+	radii = [cell.Radius for cell in biobot.cells]
+	dist = [sqrt((cell.pos[1] - biobot.pos[1])^2 + (cell.pos[2] - biobot.pos[2])^2) for cell in biobot.cells]
+	total_dist = radii + dist
+	return maximum(total_dist)
 end
 
 # ╔═╡ 2b6adfa7-b96a-453a-8829-d11eb982c9a8
@@ -31,70 +127,51 @@ begin
 	rand_circle(rng) = (θ = rand(rng, 0.0:0.1:359.9); (cos(θ), sin(θ)))
 	particle_radius(min_radius::Float64, max_radius::Float64, rng) =
 	    min_radius <= max_radius ? rand(rng, min_radius:0.01:max_radius) : min_radius
+	rand_cell_type(rng) = rand(rng, (:muscle, :epithelial))
 end
 
-# ╔═╡ ada418f4-9f7d-4d40-a6fe-87880301ec8a
+# ╔═╡ 7149223d-197c-4d38-8983-78b59f8ef4b3
 function initialize_model(;
     initial_particles::Int = 100, # initial particles in the model, not including the seed
     # size of the space in which particles exist
     space_extents::NTuple{2,Float64} = (150.0, 150.0),
     max_speed = 0.03, # speed of particle movement
     turning = 10,
-    # fraction of particles orbiting clockwise. The rest are anticlockwise
-    clockwise_fraction = 0.0,
     min_radius = 1.0, # minimum radius of any particle
     max_radius = 2.0, # maximum radius of any particle
 )
     properties = Dict(
         :max_speed => max_speed,
         :turning => turning,
-        :clockwise_fraction => clockwise_fraction,
         :min_radius => min_radius,
         :max_radius => max_radius,
         :spawn_count => 0,
     )
     # space is periodic to allow particles going off one edge to wrap around to the opposite
     space = ContinuousSpace(space_extents, 1.0; periodic = true)
-    model = ABM(Particle, space; properties)
-    center = space_extents ./ 2.0
+    model_biobot = ABM(Biobot, space; properties)
+	model_cells = ABM(Cell, space; properties)
+	
     for i in 1:initial_particles
-        particle = Particle(
+		cell_type = rand_cell_type(model_biobot.rng)
+		position = Float64.(Tuple(rand(model_biobot.rng, 10:140, (2)))) # momenteel nog zo, later fixen dat een biobot zijn cellen niet buiten de borders kunnen komen
+        biobot = Biobot(
             i,
-            particle_radius(min_radius, max_radius, model.rng),
-            rand(model.rng) < clockwise_fraction,
-			rand(model.rng, 0:2π/360:2π)
+			position,
+            1,
+            add_cells(position, cell_type, i),
+			rand(model_biobot.rng, 0:2π/360:2π),
+			(0.0, 0.0),
         )
+		biobot.Radius = calc_radius(biobot)
         # `add_agent!` automatically gives the particle a random position in the space
-        add_agent!(particle, model)
+        add_agent!(biobot, biobot.pos, model_biobot)
+		for cell in biobot.cells
+			add_agent!(cell, cell.pos, model_cells)
+		end
     end
-    # create the seed particle
-    particle = Particle(
-        initial_particles + 1,
-        particle_radius(min_radius, max_radius, model.rng),
-        true,
-		rand(model.rng, 0:2π/360:2π);
-        pos = center,
-        is_stuck = true,
-    )
-    # `add_agent_pos!` will use the position of the agent passed in, instead of assigning it
-    # to a random value
-    add_agent_pos!(particle, model)
-    return model
-end
-
-# ╔═╡ ef858e7f-f9d3-49f8-a02a-0c167adbb9e7
-function agent_step!(agent::Particle, model)
-    agent.is_stuck && return
-
-    for id in nearby_ids(agent.pos, model, agent.radius)
-        if model[id].is_stuck
-			# hier integreren dat ze aan elkaar hangen als ze in elkaars radius zijn
-			return
-        end
-    end
-    agent.direction = agent.direction + rand(model.rng, model.turning* -π/180:2π/360:model.turning*π/180)
-	agent.vel = (cos(agent.direction),sin(agent.direction))
-    move_agent!(agent, model, rand(model.rng, 0:0.001:model.max_speed))
+	
+    return model_biobot, model_cells
 end
 
 # ╔═╡ 742f7ab0-fb3f-4ae1-b8ec-30ff52ef4f6c
@@ -104,7 +181,8 @@ function model_step!(model)
             nextid(model),
             particle_radius(model.min_radius, model.max_radius, model.rng),
             rand(model.rng) < model.clockwise_fraction,
-			rand(model.rng, 0:2π/360:2π);
+			rand(model.rng, 0:2π/360:2π),
+			rand_cell_type(model.rng);
             pos = (rand_circle(model.rng) .+ 1.0) .* model.space.extent .* 0.49,
         )
         add_agent_pos!(particle, model)
@@ -114,26 +192,28 @@ end
 
 # ╔═╡ 5f44ee3f-b132-4b97-a0bb-a6ee13f1a45a
 begin
-	model = initialize_model()
+	model_biobot, model_cells = initialize_model()
 
 	using InteractiveDynamics
 	import CairoMakie
 
-	# Particles that are stuck and part of the fractal are shown in red, for visual distinction
-	particle_color(a::Particle) = a.is_stuck ? :red : :blue
+	# Since there are only two cell types this is easy (for now)
+	cell_color(a::Cell) = a.Type == :muscle ? :red : :blue
+	cell_color(a::Biobot) = a.cells[1].Type == :muscle ? :red : :blue
 	# The visual size of particles corresponds to their radius, and has been calculated
 	# for the default value of `space_extents` of the `initialize_model` function. It will
 	# not look accurate on other values.
-	particle_size(a::Particle) = 7.5 * a.radius
+	cell_size(a::Cell) = 7.5 * a.Radius
+	cell_size(a::Biobot) = 7.5 * a.Radius
 
 	abm_video(
-		"MWE.mp4",
-		model,
+		"MWE2.mp4",
+		model_biobot,
 		agent_step!,
 		model_step!;
-		ac = particle_color,
-		as = particle_size,
-		am = '●',
+		ac = cell_color,
+		as = cell_size,
+		am = '○',
 		spf = 10,
 		frames = 150,
 		framerate = 25,
@@ -141,10 +221,23 @@ begin
 	)
 end
 
-# ╔═╡ 2da8a137-3bda-46a6-bc4a-541ed340156e
+# ╔═╡ 318a865f-8edd-4ec3-a02e-e4180f6e44c8
 md"""
-**TO DO:**
-* Integreren dat als twee cellen botsen, hun beweging aan elkaar gelinked is
+#### 7. Current problems
+* The biobot can have cells that lay outside the 150 x 150 grid. This gives an error.
+* The design of the biobot is currently fixed
+* Maybe it's an idea to create make a supertype and then make the cells and biobot a subtype. This way we can simulate them both
+
+`@agent YourAgentType{X, Y} AgentSupertype begin
+    some_property::X
+    other_extra_property::Y
+    # etc...
+end`
+"""
+
+# ╔═╡ df5df6ac-49d8-4349-b680-e47efeb0a23b
+md"""
+Idee is dus om die supertype te maken, dan bij verplaatsen van cellen kijk je of het de eerste cell is in de list of cells van de corresponderende biobot of niet. Indien dit het geval is bereken je de stap en zet je deze. Indien dit niet het geval is zet je dezelfde stap als de eerste cell in de rij.
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -158,8 +251,8 @@ PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
 Agents = "~4.5.6"
-CairoMakie = "~0.6.5"
-InteractiveDynamics = "~0.17.3"
+CairoMakie = "~0.6.6"
+InteractiveDynamics = "~0.18.0"
 PlutoUI = "~0.7.16"
 """
 
@@ -207,9 +300,9 @@ version = "0.1.0"
 
 [[ArrayInterface]]
 deps = ["Compat", "IfElse", "LinearAlgebra", "Requires", "SparseArrays", "Static"]
-git-tree-sha1 = "b8d49c34c3da35f220e7295659cd0bab8e739fed"
+git-tree-sha1 = "e527b258413e0c6d4f66ade574744c94edef81f8"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "3.1.33"
+version = "3.1.40"
 
 [[Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -254,9 +347,9 @@ version = "1.0.5"
 
 [[CairoMakie]]
 deps = ["Base64", "Cairo", "Colors", "FFTW", "FileIO", "FreeType", "GeometryBasics", "LinearAlgebra", "Makie", "SHA", "StaticArrays"]
-git-tree-sha1 = "8664989955daccc90002629aa80193e44893bb45"
+git-tree-sha1 = "774ff1cce3ae930af3948c120c15eeb96c886c33"
 uuid = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
-version = "0.6.5"
+version = "0.6.6"
 
 [[Cairo_jll]]
 deps = ["Artifacts", "Bzip2_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "JLLWrappers", "LZO_jll", "Libdl", "Pixman_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Zlib_jll", "libpng_jll"]
@@ -363,9 +456,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[Distributions]]
 deps = ["ChainRulesCore", "FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns"]
-git-tree-sha1 = "e13d3977b559f013b3729a029119162f84e93f5b"
+git-tree-sha1 = "72dcda9e19f88d09bf21b5f9507a0bb430bce2aa"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.25.19"
+version = "0.25.24"
 
 [[DocStringExtensions]]
 deps = ["LibGit2"]
@@ -385,9 +478,9 @@ version = "2.2.3+0"
 
 [[EllipsisNotation]]
 deps = ["ArrayInterface"]
-git-tree-sha1 = "8041575f021cba5a099a456b4163c9a08b566a02"
+git-tree-sha1 = "9aad812fb7c4c038da7cab5a069f502e6e3ae030"
 uuid = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
-version = "1.1.0"
+version = "1.1.1"
 
 [[Expat_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -560,9 +653,9 @@ uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
 version = "0.2.2"
 
 [[IfElse]]
-git-tree-sha1 = "28e837ff3e7a6c3cdb252ce49fb412c8eb3caeef"
+git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
 uuid = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
-version = "0.1.0"
+version = "0.1.1"
 
 [[ImageCore]]
 deps = ["AbstractFFTs", "ColorVectorSpace", "Colors", "FixedPointNumbers", "Graphics", "MappedArrays", "MosaicViews", "OffsetArrays", "PaddedViews", "Reexport"]
@@ -572,9 +665,9 @@ version = "0.9.3"
 
 [[ImageIO]]
 deps = ["FileIO", "Netpbm", "OpenEXR", "PNGFiles", "TiffImages", "UUIDs"]
-git-tree-sha1 = "13c826abd23931d909e4c5538643d9691f62a617"
+git-tree-sha1 = "a2951c93684551467265e0e32b577914f69532be"
 uuid = "82e4d734-157c-48bb-816b-45c225c6df19"
-version = "0.5.8"
+version = "0.5.9"
 
 [[Imath_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -606,9 +699,9 @@ version = "2018.0.3+2"
 
 [[InteractiveDynamics]]
 deps = ["DataStructures", "Makie", "Observables", "Requires", "StatsBase", "Test"]
-git-tree-sha1 = "386f669913c23d8b247552c9f3fb58b8fd5b9dbe"
+git-tree-sha1 = "1a96e23c4e34219d338897d4fece7ee0bfbc27a0"
 uuid = "ec714cd0-5f51-11eb-0b6e-452e7367ff84"
-version = "0.17.3"
+version = "0.18.0"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -689,9 +782,9 @@ uuid = "dd4b983a-f0e5-5f8d-a1b7-129d4a5fb1ac"
 version = "2.10.1+0"
 
 [[LaTeXStrings]]
-git-tree-sha1 = "c7f1c695e06c01b95a67f0cd1d34994f3e7db104"
+git-tree-sha1 = "f2355693d6778a178ade15952b7ac47a4ff97996"
 uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
-version = "1.2.1"
+version = "1.3.0"
 
 [[LazyArtifacts]]
 deps = ["Artifacts", "Pkg"]
@@ -724,9 +817,9 @@ uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 
 [[Libffi_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "761a393aeccd6aa92ec3515e428c26bf99575b3b"
+git-tree-sha1 = "0b4a5d71f3e5200a7dff793393e09dfc2d874290"
 uuid = "e9f186c6-92d2-5b65-8a66-fee21dc1b490"
-version = "3.2.2+0"
+version = "3.2.2+1"
 
 [[Libgcrypt_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgpg_error_jll", "Pkg"]
@@ -791,9 +884,9 @@ version = "0.5.8"
 
 [[Makie]]
 deps = ["Animations", "Base64", "ColorBrewer", "ColorSchemes", "ColorTypes", "Colors", "Contour", "Distributions", "DocStringExtensions", "FFMPEG", "FileIO", "FixedPointNumbers", "Formatting", "FreeType", "FreeTypeAbstraction", "GeometryBasics", "GridLayoutBase", "ImageIO", "IntervalSets", "Isoband", "KernelDensity", "LaTeXStrings", "LinearAlgebra", "MakieCore", "Markdown", "Match", "MathTeXEngine", "Observables", "Packing", "PlotUtils", "PolygonOps", "Printf", "Random", "RelocatableFolders", "Serialization", "Showoff", "SignedDistanceFields", "SparseArrays", "StaticArrays", "Statistics", "StatsBase", "StatsFuns", "StructArrays", "UnicodeFun"]
-git-tree-sha1 = "7e49f989e7c7f50fe55bd92d45329c9cf3f2583d"
+git-tree-sha1 = "56b0b7772676c499430dc8eb15cfab120c05a150"
 uuid = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
-version = "0.15.2"
+version = "0.15.3"
 
 [[MakieCore]]
 deps = ["Observables"]
@@ -939,15 +1032,15 @@ version = "8.44.0+0"
 
 [[PDMats]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
-git-tree-sha1 = "4dd403333bcf0909341cfe57ec115152f937d7d8"
+git-tree-sha1 = "c8b8775b2f242c80ea85c83714c64ecfa3c53355"
 uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
-version = "0.11.1"
+version = "0.11.3"
 
 [[PNGFiles]]
 deps = ["Base64", "CEnum", "ImageCore", "IndirectArrays", "OffsetArrays", "libpng_jll"]
-git-tree-sha1 = "85e3436b18980e47604dd0909e37e2f066f54398"
+git-tree-sha1 = "6d105d40e30b635cfed9d52ec29cf456e27d38f8"
 uuid = "f57f5aa1-a3ce-4bc8-8ab9-96f992907883"
-version = "0.3.10"
+version = "0.3.12"
 
 [[Packing]]
 deps = ["GeometryBasics"]
@@ -1072,9 +1165,9 @@ version = "1.2.2"
 
 [[RelocatableFolders]]
 deps = ["SHA", "Scratch"]
-git-tree-sha1 = "df2be5142a2a3db2da37b21d87c9fa7973486bfd"
+git-tree-sha1 = "cdbd3b1338c72ce29d9584fdbe9e9b70eeb5adca"
 uuid = "05181044-ff0b-4ac5-8273-598c1e38db00"
-version = "0.1.2"
+version = "0.1.3"
 
 [[Requires]]
 deps = ["UUIDs"]
@@ -1160,9 +1253,9 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[SpecialFunctions]]
 deps = ["ChainRulesCore", "IrrationalConstants", "LogExpFunctions", "OpenLibm_jll", "OpenSpecFun_jll"]
-git-tree-sha1 = "793793f1df98e3d7d554b65a107e9c9a6399a6ed"
+git-tree-sha1 = "f0bccf98e16759818ffc5d97ac3ebf87eb950150"
 uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
-version = "1.7.0"
+version = "1.8.1"
 
 [[StableRNGs]]
 deps = ["Random", "Test"]
@@ -1178,9 +1271,9 @@ version = "0.1.1"
 
 [[Static]]
 deps = ["IfElse"]
-git-tree-sha1 = "a8f30abc7c64a39d389680b74e749cf33f872a70"
+git-tree-sha1 = "e7bc80dc93f50857a5d1e3c8121495852f407e6a"
 uuid = "aedffcd0-7271-4cad-89d0-dc628f76c6d3"
-version = "0.3.3"
+version = "0.4.0"
 
 [[StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
@@ -1250,10 +1343,10 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[TiffImages]]
-deps = ["ColorTypes", "DocStringExtensions", "FileIO", "FixedPointNumbers", "IndirectArrays", "Inflate", "OffsetArrays", "OrderedCollections", "PkgVersion", "ProgressMeter"]
-git-tree-sha1 = "945b8d87c5e8d5e34e6207ee15edb9d11ae44716"
+deps = ["ColorTypes", "DataStructures", "DocStringExtensions", "FileIO", "FixedPointNumbers", "IndirectArrays", "Inflate", "OffsetArrays", "PkgVersion", "ProgressMeter", "UUIDs"]
+git-tree-sha1 = "c342ae2abf4902d65a0b0bf59b28506a6e17078a"
 uuid = "731e570b-9d59-4bfa-96dc-6df516fadf69"
-version = "0.4.3"
+version = "0.5.2"
 
 [[TranscodingStreams]]
 deps = ["Random", "Test"]
@@ -1407,13 +1500,31 @@ version = "3.5.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═a0bf91a0-2cfd-11ec-0378-e30d2af1ca69
-# ╠═e5c501ba-a2c4-4c97-9b5b-d478da0ee6ae
-# ╠═2b6adfa7-b96a-453a-8829-d11eb982c9a8
-# ╠═ada418f4-9f7d-4d40-a6fe-87880301ec8a
-# ╠═ef858e7f-f9d3-49f8-a02a-0c167adbb9e7
+# ╟─a0bf91a0-2cfd-11ec-0378-e30d2af1ca69
+# ╟─bc6daac4-40fe-4cf2-a8c7-5ccd64248f4f
+# ╟─3e4a03a7-fa8b-4b5a-8c80-baf13d31d665
+# ╠═18181481-1e82-429d-a677-96d75b7fda38
+# ╠═70b36f1e-d167-48a3-98b9-53a615abad3b
+# ╟─0cc60733-9dba-4fc2-9f76-72162c07a539
+# ╟─951feb03-42eb-443c-924d-57c9765fdd35
+# ╠═7149223d-197c-4d38-8983-78b59f8ef4b3
+# ╟─ae3b476f-1a5f-405b-922b-c207745b7b82
+# ╟─4c95a1c8-01db-414b-84ae-d634b2e14664
+# ╠═7e669b9b-2387-4f5b-b9e3-13939ce7a132
+# ╟─ff6f7e55-c4f3-4b71-a717-a8a0abaa30b5
+# ╟─7d1fe696-0b8f-40b8-b618-06fa411c2e5c
+# ╠═4257eeea-3be0-4b48-89e0-3a128c5b1c58
 # ╠═742f7ab0-fb3f-4ae1-b8ec-30ff52ef4f6c
+# ╟─a1cf04df-eff5-42b1-8901-a2b949a715eb
+# ╟─73badb82-8e57-4bf9-b0f1-237f695e32cb
 # ╠═5f44ee3f-b132-4b97-a0bb-a6ee13f1a45a
-# ╠═2da8a137-3bda-46a6-bc4a-541ed340156e
+# ╟─52d0a4c2-216c-4e66-b949-f37a099935cf
+# ╟─7eb53d1a-c1d3-46d3-8a11-3541ffe56a47
+# ╠═7d070d91-bb5b-4438-8738-d1ec013357b4
+# ╠═19a01da3-0fa7-4b3f-b3e4-82c4f3f2e86e
+# ╠═682974f4-0702-4623-882f-aa8ba5a44a44
+# ╠═2b6adfa7-b96a-453a-8829-d11eb982c9a8
+# ╟─318a865f-8edd-4ec3-a02e-e4180f6e44c8
+# ╟─df5df6ac-49d8-4349-b680-e47efeb0a23b
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
