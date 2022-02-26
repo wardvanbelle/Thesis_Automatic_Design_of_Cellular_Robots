@@ -1,4 +1,4 @@
-using Voxcraft, JSON, StatsBase
+using Voxcraft, JSON, StatsBase, LightXML
 
 #---------------------------------------
 #        FUNCTIONS FOR SIMULATION
@@ -225,22 +225,21 @@ function fill_archive((cell_min,cell_max), (min_active_percentage, max_active_pe
     return archive
 end
 
-function score_biobot(biobot_matrix, celltypes, history_path)
+function score_biobot(biobot_matrix, celltypes, history_path, xml_path)
     AddBiobot(biobot_matrix, celltypes, (1,1,1))
-    WriteVXA("./Biobot_V1") # NOG AANPASSEN
+    WriteVXA("../../Biobot_V1") # NOG AANPASSEN
     
-    # export vxa file to GPU and simulate with python file
+    # export vxa file to GPU and simulate
     println("file sent to GPU server")
-    # history_file = missing
-    println("history file received")
-
-    processed_history = process_history(history_path, sum(biobot_matrix .!= 0))
-    start_pos = processed_history[1,:, 1:2]
-    final_pos = processed_history[size(processed_history,1),:, 1:2]
+    run(pipeline(`./voxcraft-sim -i ../../Biobot_V1/ -o $xml_path -f`, stdout="$history_path"));
     
-    # calculate score (only distance at the moment)
-    distances = [sqrt((start_pos[i,1] - final_pos[i,1])^2 + (start_pos[i,2] - final_pos[i,2])^2) for i in 1:size(start_pos,1)]
-    score = minimum(distances)
+    # history_file = missing
+    if isfile("../../Biobot_V1/xmls/curbiobot.xml")
+        println("history and XML file received")
+    end
+    
+    # calculate score based on xml
+    score = process_xml(xml_path)[1]
 
     return score
 end
@@ -265,6 +264,21 @@ function process_history(history_path, num_cells)
     return processed_history
 end
 
+function process_xml(xml_path)
+    processed_xml = []
+    xml_output = parse_file(xml_path)
+    xml_root = root(xml_output)
+    detail = xml_root["detail"][1]
+    biobots = get_elements_by_tagname(detail, "robot")
+
+    for biobot in biobots
+        println("fitness = $(content(biobot["fitness_score"][1]))")
+        append!(processed_xml,content(biobot["fitness_score"][1]))
+    end
+
+    return processed_xml
+end
+
 
 #---------------------------------------
 #           ACTUAL SIMULATION
@@ -285,6 +299,8 @@ num_iterations = 0
 max_iterations = 5 # change this when everything works
 
 run_MAP_elites = false # change to true if you want to run the MAP-Elites algorithm
+
+cd("./voxcraft-sim/build") # change to right folder
 
 while run_MAP_elites && num_iterations < max_iterations
 
@@ -349,8 +365,9 @@ end
 
 test_morph = constricted_morphology((2,2,2), length(celltypes), active_celltypes, 6, 2/3)
 
-history_test = process_history("./Biobot_V1/histories/analysis.history",6)
-test1 = score_biobot(test_morph, celltypes, "./Biobot_V1/histories/analysis.history")
+test_score = score_biobot(test_morph, celltypes, "../../Biobot_V1/histories/curbiobot.history", "../../Biobot_V1/xmls/curbiobot.xml")
 
-println(test1)
-#WriteVXA("Biobot_V1")
+println(test_score)
+# WriteVXA("Biobot_V1")
+
+# aanpassen van de fitness functie zou eventueel kunnen door de vxa aan te passen nadat die al gemaakt is.
