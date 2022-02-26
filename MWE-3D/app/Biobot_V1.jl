@@ -225,21 +225,25 @@ function fill_archive((cell_min,cell_max), (min_active_percentage, max_active_pe
     return archive
 end
 
-function score_biobot(biobot_matrix, celltypes, history_path, xml_path)
+function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_name = "")
     AddBiobot(biobot_matrix, celltypes, (1,1,1))
-    WriteVXA("../../Biobot_V1") # NOG AANPASSEN
+    WriteVXA("../../Biobot_V1") 
     
     # export vxa file to GPU and simulate
     println("file sent to GPU server")
-    run(pipeline(`./voxcraft-sim -i ../../Biobot_V1/ -o $xml_path -f`, stdout="$history_path"));
-    
-    # history_file = missing
-    if isfile("../../Biobot_V1/xmls/curbiobot.xml")
-        println("history and XML file received")
+
+    if isempty(save_name)
+        run(pipeline(`./voxcraft-sim -i ../../Biobot_V1/ -o $(xml_path*"/temp.xml") -f`, stdout="$(history_path*"/temp.history")"));
+    else
+        run(pipeline(`./voxcraft-sim -i ../../Biobot_V1/ -o $(xml_path*"/"*save_name*".xml") -f`, stdout="$(history_path*"/"*save_name*".history")"));
     end
     
     # calculate score based on xml
-    score = process_xml(xml_path)[1]
+    if isempty(save_name)
+        score = process_xml(xml_path*"/temp.xml")[1]
+    else
+        score = process_xml(xml_path*"/"*save_name)[1]
+    end
 
     return score
 end
@@ -272,7 +276,6 @@ function process_xml(xml_path)
     biobots = get_elements_by_tagname(detail, "robot")
 
     for biobot in biobots
-        println("fitness = $(content(biobot["fitness_score"][1]))")
         append!(processed_xml,content(biobot["fitness_score"][1]))
     end
 
@@ -294,9 +297,22 @@ TempPeriod(2) # period of temprature
 # define the celltypes
 celltypes, active_celltypes = import_celltypes("./Biobot_V1/test_database.JSON") 
 
-# MAP-Elites algorithm
+# MAP-Elites algorithm parameters
 num_iterations = 0
 max_iterations = 5 # change this when everything works
+MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
+
+# Biobot parameters
+cell_min = 10
+cell_max = 23
+min_active_percentage = 3/10
+max_active_percentage = 7/10
+biobot_size = (3,3,3)
+
+# Other parameters
+history_path = "../../Biobot_V1/histories" # map where histories are stored
+xml_path = "../../Biobot_V1/xmls" # map where xmls are stored
+
 
 run_MAP_elites = false # change to true if you want to run the MAP-Elites algorithm
 
@@ -306,42 +322,45 @@ while run_MAP_elites && num_iterations < max_iterations
 
     # 1) fill archive + score begin archive
 
-    # test_archive = fill_archive((10,23), (3/10, 7/10), (3,3,3), length(celltypes), active_celltypes)
-    MAP = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, num_celltypes, active_celltypes)
+    MAP = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes)
     score_matrix = zeros((size(MAP,1)-1,size(MAP,2)-1))
     for i in 2:size(MAP,1)
         for j in 2:size(MAP,2)
             if typeof(MAP[i,j]) == Matrix # TO DO: aanpassen dat het enkel score berekent indien de matrix niet leeg is
-                score_matrix[i-1,j-1] = score_biobot(MAP[i,j], celltypes) 
+                score_matrix[i-1,j-1] = score_biobot(MAP[i,j], celltypes, history_path, xml_path) 
             end
         end
     end
 
     # 2) do a random mutation/deletion/cross_over to make a new morphology
+    morphology1 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))] 
 
     action = rand(["cross-over","deletion","mutation"])
 
     if action == "deletion"
-        # pick random morphology from archive
-        deletion(morphology1)
-
+        new_morphology = deletion(morphology1)
     elseif action == "mutation"
-        # pick random morphology from archive
-        mutation(morphology1, length(celltypes))
-
+        new_morphology = mutation(morphology1, length(celltypes))
     else
-        # pick two random morphologies and perform cross-over
-        cross_morphology = cross_over(morphology1, morphology2)
+        morphology2 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))]
+        while morphology1 == morphology2
+            morphology2 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))]
+        end
+        new_morphology = cross_over(morphology1, morphology2)
     end
 
     # 3) score and characterize the newly created biobot
 
-    x_biobot, y_biobot = characterize_biobot(new_morphology, active_celltypes) 
-    biobot_score = score_biobot(new_morphology, celltypes)
+    x_biobot, y_biobot = characterize_biobot(new_morphology, active_celltypes)
+    biobot_name = "biobot_"*string(x_biobot)*"_"*string(y_biobot)
+    biobot_score = score_biobot(new_morphology, celltypes, history_path, xml_path, save_name = biobot_name)
 
     # 4) Check if new biobot is better than the one present at it's place in the archive
 
-    if biobot_score > score_matrix[x_biobot, y_biobot] # TO DO: check if this x and y always work
+    # change active_percentage to closest value on y-axis
+    y_biobot = MAP_y_axis[argmin(abs.(MAP_y_axis .- y_biobot))]
+
+    if biobot_score > score_matrix[x_biobot, y_biobot]
         MAP[x_biobot, y_biobot] = new_morphology
         score_matrix[x_biobot, y_biobot] = biobot_score
     end
@@ -353,6 +372,10 @@ while run_MAP_elites && num_iterations < max_iterations
 end
 
 # 6) find optimal morphology and simulate + show history
+best_morphology = MAP[argmax(score_matrix)]
+best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot")
+println("best score = $best_score")
+
 
 # TO DO
 # automatisch tonen zou eventueel kunnen via gebruik van commandline 'voxcraft-viz folder_name/test.history'
@@ -363,11 +386,11 @@ end
 
 
 
-test_morph = constricted_morphology((2,2,2), length(celltypes), active_celltypes, 6, 2/3)
+#test_morph = constricted_morphology((2,2,2), length(celltypes), active_celltypes, 6, 2/3)
 
-test_score = score_biobot(test_morph, celltypes, "../../Biobot_V1/histories/curbiobot.history", "../../Biobot_V1/xmls/curbiobot.xml")
+#test_score = score_biobot(test_morph, celltypes, "../../Biobot_V1/histories/curbiobot.history", "../../Biobot_V1/xmls/curbiobot.xml", save_name)
 
-println(test_score)
+#println(test_score)
 # WriteVXA("Biobot_V1")
 
 # aanpassen van de fitness functie zou eventueel kunnen door de vxa aan te passen nadat die al gemaakt is.
