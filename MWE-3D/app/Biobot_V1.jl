@@ -121,6 +121,8 @@ function import_celltypes(JSONfilepath)
     active_celltypes = []
     celltypesdict = JSON.parsefile(JSONfilepath)
 
+    celltypenum = 1
+
     for cellname in keys(celltypesdict)
         cellRGBA = Tuple(celltypesdict[cellname]["RGBA"])
         cellE = celltypesdict[cellname]["E"]
@@ -130,10 +132,12 @@ function import_celltypes(JSONfilepath)
             cellCTE = celltypesdict[cellname]["CTE"]
             cellPhase = celltypesdict[cellname]["tempPhase"]
             push!(celltypes, AddMaterial(E = cellE, RHO = cellRHO, CTE = cellCTE, tempPhase = cellPhase, RGBA = cellRGBA))
-            push!(active_celltypes, last(celltypes))
+            push!(active_celltypes, celltypenum)
         else
             push!(celltypes, AddMaterial(E = cellE, RHO = cellRHO, RGBA = cellRGBA))
         end
+
+        celltypenum += 1
     end
 
     return celltypes, active_celltypes
@@ -245,7 +249,7 @@ function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_nam
         score = process_xml(xml_path*"/"*save_name)[1]
     end
 
-    return score
+    return parse(Float64,string(score))
 end
 
 function process_history(history_path, num_cells)
@@ -297,11 +301,6 @@ TempPeriod(2) # period of temprature
 # define the celltypes
 celltypes, active_celltypes = import_celltypes("./Biobot_V1/test_database.JSON") 
 
-# MAP-Elites algorithm parameters
-num_iterations = 0
-max_iterations = 5 # change this when everything works
-MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
-
 # Biobot parameters
 cell_min = 10
 cell_max = 23
@@ -309,12 +308,18 @@ min_active_percentage = 3/10
 max_active_percentage = 7/10
 biobot_size = (3,3,3)
 
+# MAP-Elites algorithm parameters
+num_iterations = 0
+max_iterations = 5 # change this when everything works
+MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
+MAP_x_axis = Array(cell_min:cell_max)
+
 # Other parameters
 history_path = "../../Biobot_V1/histories" # map where histories are stored
 xml_path = "../../Biobot_V1/xmls" # map where xmls are stored
 
 
-run_MAP_elites = false # change to true if you want to run the MAP-Elites algorithm
+run_MAP_elites = true # change to true if you want to run the MAP-Elites algorithm
 
 cd("./voxcraft-sim/build") # change to right folder
 
@@ -322,12 +327,12 @@ while run_MAP_elites && num_iterations < max_iterations
 
     # 1) fill archive + score begin archive
 
-    MAP = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes)
-    score_matrix = zeros((size(MAP,1)-1,size(MAP,2)-1))
-    for i in 2:size(MAP,1)
-        for j in 2:size(MAP,2)
+    global MAP = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes)
+    global score_matrix = zeros((size(MAP,1),size(MAP,2)))
+    for i in 1:size(MAP,1)
+        for j in 1:size(MAP,2)
             if typeof(MAP[i,j]) == Matrix # TO DO: aanpassen dat het enkel score berekent indien de matrix niet leeg is
-                score_matrix[i-1,j-1] = score_biobot(MAP[i,j], celltypes, history_path, xml_path) 
+                score_matrix[i,j] = score_biobot(MAP[i,j], celltypes, history_path, xml_path) 
             end
         end
     end
@@ -360,9 +365,12 @@ while run_MAP_elites && num_iterations < max_iterations
     # change active_percentage to closest value on y-axis
     y_biobot = MAP_y_axis[argmin(abs.(MAP_y_axis .- y_biobot))]
 
-    if biobot_score > score_matrix[x_biobot, y_biobot]
-        MAP[x_biobot, y_biobot] = new_morphology
-        score_matrix[x_biobot, y_biobot] = biobot_score
+    y_pos = findall(x->x==y_biobot, MAP_y_axis)[1]
+    x_pos = findall(x->x==x_biobot, MAP_x_axis)[1]
+
+    if biobot_score > score_matrix[x_pos, y_pos]
+        MAP[x_pos, y_pos] = new_morphology
+        score_matrix[x_pos, y_pos] = biobot_score
     end
 
     # 5) Update iteration counter
