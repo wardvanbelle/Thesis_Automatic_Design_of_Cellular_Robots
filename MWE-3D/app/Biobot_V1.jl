@@ -154,14 +154,18 @@ function biobot_disctance(morphology1, morphology2)
     return distance
 end
 
-function cross_over(morphology1, morphology2) 
+function cross_over(morphology1, morphology2, cell_min, cell_max) 
 
     chancematrix = rand(0:0.1:1, size(morphology1))
 
     new_morphology = copy(morphology1)
     new_morphology[chancematrix .<= 0.5] = morphology2[chancematrix .<= 0.5]
 
-    return new_morphology
+    if sum(new_morphology .!= 0) < cell_min || sum(new_morphology .!= 0) > cell_max
+        return morphology1
+    else
+        return new_morphology
+    end
 end
 
 function deletion(morphology) 
@@ -342,7 +346,7 @@ while run_MAP_elites && num_iterations < max_iterations
 
     action = rand(["cross-over","deletion","mutation"])
 
-    if action == "deletion"
+    if action == "deletion" && sum(morphology1 .!= 0) > cell_min # zorgt ervoor dat deletie niet kan als we al aan het min aantal cellen zitten.
         new_morphology = deletion(morphology1)
     elseif action == "mutation"
         new_morphology = mutation(morphology1, length(celltypes))
@@ -351,7 +355,7 @@ while run_MAP_elites && num_iterations < max_iterations
         while morphology1 == morphology2
             morphology2 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))]
         end
-        new_morphology = cross_over(morphology1, morphology2)
+        new_morphology = cross_over(morphology1, morphology2, cell_min, cell_max)
     end
 
     # 3) score and characterize the newly created biobot
