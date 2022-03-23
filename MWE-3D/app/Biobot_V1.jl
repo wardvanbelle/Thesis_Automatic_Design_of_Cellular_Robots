@@ -219,7 +219,7 @@ function fill_archive((cell_min,cell_max), (min_active_percentage, max_active_pe
         end
     end
 
-    begin_percentage_filled = 1 # change if needed for now 100 % 
+    begin_percentage_filled = 0.5 # change if needed for now 100 % 
     num_picks = Int(ceil(length(par_combinations) * begin_percentage_filled))
 
     par_combinations = sample(par_combinations, num_picks, replace = false)
@@ -250,7 +250,7 @@ function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_nam
     if isempty(save_name)
         score = process_xml(xml_path*"/temp.xml")[1]
     else
-        score = process_xml(xml_path*"/"*save_name)[1]
+        score = process_xml(xml_path*"/"*save_name*".xml")[1]
     end
 
     return parse(Float64,string(score))
@@ -306,11 +306,11 @@ TempPeriod(2) # period of temprature
 celltypes, active_celltypes = import_celltypes("./Biobot_V1/test_database.JSON") 
 
 # Biobot parameters
-cell_min = 10
-cell_max = 23
+biobot_size = (3,3,3)
+cell_min = round((biobot_size[1]*biobot_size[2]*biobot_size[3])/10)*3
+cell_max = biobot_size[1]*biobot_size[2]*biobot_size[3]
 min_active_percentage = 3/10
 max_active_percentage = 7/10
-biobot_size = (3,3,3)
 
 # MAP-Elites algorithm parameters
 num_iterations = 0
@@ -323,9 +323,11 @@ history_path = "../../Biobot_V1/histories" # map where histories are stored
 xml_path = "../../Biobot_V1/xmls" # map where xmls are stored
 
 
-run_MAP_elites = true # change to true if you want to run the MAP-Elites algorithm
+run_MAP_elites = false # change to true if you want to run the MAP-Elites algorithm
 
-cd("./voxcraft-sim/build") # change to right folder
+if run_MAP_elites
+    cd("./voxcraft-sim/build") # change to right folder
+end
 
 while run_MAP_elites && num_iterations < max_iterations
 
@@ -335,7 +337,7 @@ while run_MAP_elites && num_iterations < max_iterations
     global score_matrix = zeros((size(MAP,1),size(MAP,2)))
     for i in 1:size(MAP,1)
         for j in 1:size(MAP,2)
-            if typeof(MAP[i,j]) == Matrix # TO DO: aanpassen dat het enkel score berekent indien de matrix niet leeg is
+            if any(MAP[i,j] .!= 0) # TO DO: aanpassen dat het enkel score berekent indien de matrix niet leeg is
                 score_matrix[i,j] = score_biobot(MAP[i,j], celltypes, history_path, xml_path) 
             end
         end
@@ -383,10 +385,12 @@ while run_MAP_elites && num_iterations < max_iterations
 
 end
 
-# 6) find optimal morphology and simulate + show history
-best_morphology = MAP[argmax(score_matrix)]
-best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot")
-println("best score = $best_score")
+if run_MAP_elites
+    # 6) find optimal morphology and simulate + show history
+    best_morphology = MAP[argmax(score_matrix)]
+    best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot")
+    println("best score = $best_score")
+end
 
 
 # TO DO
@@ -395,8 +399,6 @@ println("best score = $best_score")
 #---------------------------------------
 #           TEST CORNER
 #---------------------------------------
-
-
 
 #test_morph = constricted_morphology((2,2,2), length(celltypes), active_celltypes, 6, 2/3)
 
