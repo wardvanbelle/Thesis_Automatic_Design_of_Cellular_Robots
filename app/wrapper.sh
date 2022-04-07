@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # move to app directory
-cd app/
+cd Thesis_Automatic_Design_of_Cellular_Robots/app/
 
 # initialize all needed packages for julia
 julia initialize.jl 
