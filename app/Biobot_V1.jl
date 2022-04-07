@@ -324,7 +324,7 @@ history_path = "../../Biobot_V1/histories" # map where histories are stored
 xml_path = "../../Biobot_V1/xmls" # map where xmls are stored
 
 
-run_MAP_elites = false # change to true if you want to run the MAP-Elites algorithm
+run_MAP_elites = true # change to true if you want to run the MAP-Elites algorithm
 
 if run_MAP_elites
     cd("./voxcraft-sim/build") # change to right folder
