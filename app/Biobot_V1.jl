@@ -307,11 +307,11 @@ TempPeriod(2) # period of temprature
 celltypes, active_celltypes = import_celltypes("./Biobot_V1/test_database.JSON") 
 
 # Biobot parameters
-biobot_size = (2,2,2)
+biobot_size = (3,3,3)
 cell_min = round((biobot_size[1]*biobot_size[2]*biobot_size[3])/10)*3
 cell_max = biobot_size[1]*biobot_size[2]*biobot_size[3]
-min_active_percentage = 2/8
-max_active_percentage = 6/8
+min_active_percentage = 9/27
+max_active_percentage = 21/27
 
 # MAP-Elites algorithm parameters
 num_iterations = 0
