@@ -315,7 +315,7 @@ max_active_percentage = 6/8
 
 # MAP-Elites algorithm parameters
 num_iterations = 0
-max_iterations = 5 # change this when everything works
+max_iterations = 100 # change this when everything works
 MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
 MAP_x_axis = Array(cell_min:cell_max)
 
@@ -381,6 +381,12 @@ while run_MAP_elites && num_iterations < max_iterations
     if biobot_score > score_matrix[x_pos, y_pos]
         MAP[x_pos, y_pos] = new_morphology
         score_matrix[x_pos, y_pos] = biobot_score
+    end
+
+    # if 10 iterations have passed, simulate best biobot and save
+    if num_iterations % 10 == 0
+        cur_best_morphology = MAP[argmax(score_matrix)]
+        cur_best_score = score_biobot(cur_best_morphology, celltypes, history_path, xml_path, save_name = "best_$(num_iterations)")
     end
 
     # 5) Update iteration counter
