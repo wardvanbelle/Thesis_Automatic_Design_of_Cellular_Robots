@@ -16,8 +16,8 @@ cd ../../
 julia Biobot_V1.jl
 
 # move the files of the best result to the project folder
-mv ./Biobot_V1/histories/best* /project
-mv ./Biobot_V1/xmls/best* /project
+mv ./Biobot_V1/histories/best_biobot.history /project/best_biobot.history
+mv ./Biobot_V1/xmls/best_biobot.xml /project/best_biobot.xml
 
 # exit and return ouptput of last script
 exit

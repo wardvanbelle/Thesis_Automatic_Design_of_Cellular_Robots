@@ -387,6 +387,8 @@ while run_MAP_elites && num_iterations < max_iterations
     if num_iterations % 10 == 0
         cur_best_morphology = MAP[argmax(score_matrix)]
         cur_best_score = score_biobot(cur_best_morphology, celltypes, history_path, xml_path, save_name = "best_$(num_iterations)")
+        mv("../../Biobot_V1/histories/best_$(num_iterations).history","/project/best_$(num_iterations).history")
+        mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","/project/best_$(num_iterations).xml")
     end
 
     # 5) Update iteration counter
