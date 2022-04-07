@@ -22,9 +22,9 @@ function AddBiobot(morphology, celltypes, originLoc)
     end
 end
 
-function initiate_simulation(morphology, celltypes, num_biobots::Int64, boundries)
+function initiate_simulation(celltypes, num_biobots::Int64, boundries)
     (x_boundries, y_boundries, z_boundries) = boundries
-    (x_max, y_max, z_max) = size(morphology)
+    (x_max, y_max, z_max) = (2,2,2)
 
     # assert if number of biobots fits in the given space
     max_num_biobots = ((x_boundries[2] - x_boundries[1]) ÷ x_max) * ((y_boundries[2] - y_boundries[1]) ÷ y_max) * ((z_boundries[2] - z_boundries[1]) ÷ z_max)
@@ -41,7 +41,7 @@ function initiate_simulation(morphology, celltypes, num_biobots::Int64, boundrie
     origin_z = z_boundries[1]
     originLoc = (origin_x, origin_y, origin_z)
 
-    AddBiobot(morphology, celltypes, originLoc)
+    AddBiobot(rand_morphology((2,2,2), length(celltypes), 0.7), celltypes, originLoc)
     
     for i in 2:num_biobots
         origin_x += (x_max + rand(1:Δx))
@@ -49,7 +49,7 @@ function initiate_simulation(morphology, celltypes, num_biobots::Int64, boundrie
         origin_z += (z_max + rand(1:Δz))
         originLoc = (origin_x, origin_y, origin_z)
 
-        AddBiobot(morphology, celltypes, originLoc)
+        AddBiobot(rand_morphology((2,2,2), length(celltypes), 0.7), celltypes, originLoc)
     end
 end
 
@@ -219,7 +219,7 @@ function fill_archive((cell_min,cell_max), (min_active_percentage, max_active_pe
         end
     end
 
-    begin_percentage_filled = 0.5 # change if needed for now 100 % 
+    begin_percentage_filled = 0.5
     num_picks = Int(ceil(length(par_combinations) * begin_percentage_filled))
 
     par_combinations = sample(par_combinations, num_picks, replace = false)
@@ -235,16 +235,17 @@ end
 
 function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_name = "")
     AddBiobot(biobot_matrix, celltypes, (1,1,1))
+    println("created biobot")
     WriteVXA("../../Biobot_V1") 
     
     # export vxa file to GPU and simulate
-    println("file sent to GPU server")
-
+    println("started simulating biobot")
     if isempty(save_name)
         run(pipeline(`./voxcraft-sim -i ../../Biobot_V1/ -o $(xml_path*"/temp.xml") -f`, stdout="$(history_path*"/temp.history")"));
     else
         run(pipeline(`./voxcraft-sim -i ../../Biobot_V1/ -o $(xml_path*"/"*save_name*".xml") -f`, stdout="$(history_path*"/"*save_name*".history")"));
     end
+    println("done simulating biobot")
     
     # calculate score based on xml
     if isempty(save_name)
@@ -306,11 +307,11 @@ TempPeriod(2) # period of temprature
 celltypes, active_celltypes = import_celltypes("./Biobot_V1/test_database.JSON") 
 
 # Biobot parameters
-biobot_size = (3,3,3)
+biobot_size = (2,2,2)
 cell_min = round((biobot_size[1]*biobot_size[2]*biobot_size[3])/10)*3
 cell_max = biobot_size[1]*biobot_size[2]*biobot_size[3]
-min_active_percentage = 3/10
-max_active_percentage = 7/10
+min_active_percentage = 2/8
+max_active_percentage = 6/8
 
 # MAP-Elites algorithm parameters
 num_iterations = 0
@@ -323,7 +324,7 @@ history_path = "../../Biobot_V1/histories" # map where histories are stored
 xml_path = "../../Biobot_V1/xmls" # map where xmls are stored
 
 
-run_MAP_elites = true # change to true if you want to run the MAP-Elites algorithm
+run_MAP_elites = false # change to true if you want to run the MAP-Elites algorithm
 
 if run_MAP_elites
     cd("./voxcraft-sim/build") # change to right folder
@@ -332,19 +333,21 @@ end
 while run_MAP_elites && num_iterations < max_iterations
 
     # 1) fill archive + score begin archive
-
-    global MAP = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes)
-    global score_matrix = zeros((size(MAP,1),size(MAP,2)))
-    for i in 1:size(MAP,1)
-        for j in 1:size(MAP,2)
-            if any(MAP[i,j] .!= 0) # TO DO: aanpassen dat het enkel score berekent indien de matrix niet leeg is
-                score_matrix[i,j] = score_biobot(MAP[i,j], celltypes, history_path, xml_path) 
+    if num_iterations < 1
+        global MAP = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes)
+        global score_matrix = zeros((size(MAP,1),size(MAP,2)))
+        for i in 1:size(MAP,1)
+            for j in 1:size(MAP,2)
+                if any(MAP[i,j] .!= 0) # TO DO: aanpassen dat het enkel score berekent indien de matrix niet leeg is
+                    score_matrix[i,j] = score_biobot(MAP[i,j], celltypes, history_path, xml_path) 
+                end
             end
         end
     end
 
     # 2) do a random mutation/deletion/cross_over to make a new morphology
-    morphology1 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))] 
+    morphology1_pos = rand(findall(x -> x != zeros(2,2,2), MAP))
+    morphology1 = MAP[morphology1_pos] 
 
     action = rand(["cross-over","deletion","mutation"])
 
@@ -355,7 +358,8 @@ while run_MAP_elites && num_iterations < max_iterations
     else
         morphology2 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))]
         while morphology1 == morphology2
-            morphology2 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))]
+            morphology2_pos = rand(findall(x -> x != zeros(2,2,2), MAP))
+            morphology2 = MAP[morphology2_pos] 
         end
         new_morphology = cross_over(morphology1, morphology2, cell_min, cell_max)
     end
@@ -403,8 +407,9 @@ end
 #test_morph = constricted_morphology((2,2,2), length(celltypes), active_celltypes, 6, 2/3)
 
 #test_score = score_biobot(test_morph, celltypes, "../../Biobot_V1/histories/curbiobot.history", "../../Biobot_V1/xmls/curbiobot.xml", save_name)
-
-#println(test_score)
-# WriteVXA("Biobot_V1")
-
+#test_morph1 = rand_morphology((2,2,2),length(celltypes),100)
+#AddBiobot(test_morph1, celltypes, (1,1,1))
+#test_morph2 = rand_morphology((2,2,2),length(celltypes),100)
+#AddBiobot(test_morph2, celltypes, (3,3,1))
+#WriteVXA("Biobot_V1")
 # aanpassen van de fitness functie zou eventueel kunnen door de vxa aan te passen nadat die al gemaakt is.
