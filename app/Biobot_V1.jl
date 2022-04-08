@@ -180,7 +180,7 @@ end
 
 function mutation(morphology, num_celltypes)
 
-    # NOTE: at the moment it is not possible to gain cells due to mutation. Cells can only chance type.
+    # NOTE: at the moment it is not possible to gain or lose cells due to mutation. Cells can only chance type.
 
     new_morphology = copy(morphology)
 
@@ -219,7 +219,7 @@ function fill_archive((cell_min,cell_max), (min_active_percentage, max_active_pe
         end
     end
 
-    begin_percentage_filled = 0.5
+    begin_percentage_filled = 0.3
     num_picks = Int(ceil(length(par_combinations) * begin_percentage_filled))
 
     par_combinations = sample(par_combinations, num_picks, replace = false)
@@ -315,7 +315,7 @@ max_active_percentage = 21/27
 
 # MAP-Elites algorithm parameters
 num_iterations = 0
-max_iterations = 100 # change this when everything works
+max_iterations = 100 
 MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
 MAP_x_axis = Array(cell_min:cell_max)
 
@@ -338,7 +338,7 @@ while run_MAP_elites && num_iterations < max_iterations
         global score_matrix = zeros((size(MAP,1),size(MAP,2)))
         for i in 1:size(MAP,1)
             for j in 1:size(MAP,2)
-                if any(MAP[i,j] .!= 0) # TO DO: aanpassen dat het enkel score berekent indien de matrix niet leeg is
+                if any(MAP[i,j] .!= 0)
                     score_matrix[i,j] = score_biobot(MAP[i,j], celltypes, history_path, xml_path) 
                 end
             end
@@ -367,6 +367,7 @@ while run_MAP_elites && num_iterations < max_iterations
     # 3) score and characterize the newly created biobot
 
     x_biobot, y_biobot = characterize_biobot(new_morphology, active_celltypes)
+    println("x_biobot = $(x_biobot), y_biobot = $(y_biobot)")
     biobot_name = "biobot_"*string(x_biobot)*"_"*string(y_biobot)
     biobot_score = score_biobot(new_morphology, celltypes, history_path, xml_path, save_name = biobot_name)
 
@@ -389,6 +390,7 @@ while run_MAP_elites && num_iterations < max_iterations
         cur_best_score = score_biobot(cur_best_morphology, celltypes, history_path, xml_path, save_name = "best_$(num_iterations)")
         mv("../../Biobot_V1/histories/best_$(num_iterations).history","/project/best_$(num_iterations).history")
         mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","/project/best_$(num_iterations).xml")
+        println("Moved best biobot after $(num_iterations) to project folder.")
     end
 
     # 5) Update iteration counter
