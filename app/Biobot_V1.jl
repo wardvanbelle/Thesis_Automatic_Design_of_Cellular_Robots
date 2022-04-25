@@ -184,7 +184,7 @@ function mutation(morphology, num_celltypes)
 
     new_morphology = copy(morphology)
 
-    options = findall(new_morphology .!= 0)
+    options = findall(new_morphology .!= 0) # ERROR: error om dit een lege vector terug gaf
     option = rand(options)
     new_morphology[option] = rand([i for i in 1:num_celltypes if i != new_morphology[option]])
 
@@ -346,7 +346,7 @@ while run_MAP_elites && num_iterations < max_iterations
     end
 
     # 2) do a random mutation/deletion/cross_over to make a new morphology
-    morphology1_pos = rand(findall(x -> x != zeros(2,2,2), MAP))
+    morphology1_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
     morphology1 = MAP[morphology1_pos] 
 
     action = rand(["cross-over","deletion","mutation"])
@@ -358,7 +358,7 @@ while run_MAP_elites && num_iterations < max_iterations
     else
         morphology2 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))]
         while morphology1 == morphology2
-            morphology2_pos = rand(findall(x -> x != zeros(2,2,2), MAP))
+            morphology2_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
             morphology2 = MAP[morphology2_pos] 
         end
         new_morphology = cross_over(morphology1, morphology2, cell_min, cell_max)
