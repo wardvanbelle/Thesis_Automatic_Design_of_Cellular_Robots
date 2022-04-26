@@ -24,6 +24,7 @@ max_active_percentage = 21/27
 
 # MAP-Elites algorithm parameters
 num_iterations = 0
+bots_per_iter = 1
 max_iterations = 100 
 MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
 MAP_x_axis = Array(cell_min:cell_max)
