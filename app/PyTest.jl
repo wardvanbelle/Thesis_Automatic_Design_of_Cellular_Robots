@@ -26,7 +26,7 @@ max_active_percentage = 21/27
 CODE
 """
 
-push!(pyimport("sys")."path", "./app")
+push!(pyimport("sys")."path", ".")
 vxa2vxd = pyimport("VXA_to_VXD")
 vxd = vxa2vxd.VXD()
 
