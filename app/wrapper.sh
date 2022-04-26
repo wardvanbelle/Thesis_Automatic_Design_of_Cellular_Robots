@@ -3,8 +3,10 @@
 # move to app directory
 cd Thesis_Automatic_Design_of_Cellular_Robots/app/
 
-# initialize all needed packages for julia
+# initialize all needed packages for julia en python
 julia initialize.jl 
+pip install lxml
+pip install numpy
 
 # install voxcraft and cmake
 apt update;apt install -y cmake libboost-all-dev;

@@ -4,8 +4,4 @@ pkg"add JSON"
 pkg"add StatsBase"
 pkg"add LightXML"
 pkg"add PyCall"
-pkg"add Conda"
 pkg"precompile"
-using Conda
-Conda.add("lxml")
-Conda.add("numpy")
