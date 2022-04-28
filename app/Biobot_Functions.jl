@@ -327,3 +327,20 @@ function process_xml(xml_path; multiple_bots = false)
         return processed_xml
     end
 end
+
+function save_archive(archive)
+    mkdir("../../Biobot_V1/final_archive")
+    for i in 1:size(archive)[1]
+        for j in 1:size(archive)[2]
+            if any(archive[i,j] .!= 0)
+                AddBiobot(gen_archive[i,:,:,:], celltypes, (1,1,1))
+                WriteVXA("../../Biobot_V1/final_archive") 
+                vxd.create_bot_from_vxa("../../Biobot_V1/final_archive/base.vxa", minimize=true)
+                vxd.write_to_xml(path="../../Biobot_V1/final_archive/bot$(i)$(j).vxd")
+            end
+        end
+    end
+
+    run(`zip -r final_archive.zip ../../Biobot_V1/final_archive`)
+    mv("./final_archive.zip","/project/final_archive.zip")
+end

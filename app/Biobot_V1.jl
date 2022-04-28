@@ -140,6 +140,10 @@ if run_MAP_elites
     best_morphology = MAP[argmax(score_matrix)]
     best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot")
     println("best score = $best_score")
+
+    save_archive(MAP)
+    println(MAP_x_axis)
+    println(MAP_y_axis)
 end
 
 
