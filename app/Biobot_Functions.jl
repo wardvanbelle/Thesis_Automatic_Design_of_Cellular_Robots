@@ -1,5 +1,5 @@
 using Voxcraft, JSON, StatsBase, LightXML, PyCall
-push!(pyimport("sys")."path", "../../")
+push!(pyimport("sys")."path", ".")
 vxa2vxd = pyimport("VXA_to_VXD")
 
 #---------------------------------------
