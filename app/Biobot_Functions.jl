@@ -274,7 +274,7 @@ function score_generation(gen_archive, celltypes, history_path, xml_path)
 
     run(pipeline(`./voxcraft-sim -i ../../Biobot_V1/ -o $(xml_path*"/gen.xml") -f`, stdout="$(history_path*"/gen.history")"));
 
-    score, botname = process_xml(xml_path*"/gen.xml", multiple_bots = true)[1]
+    score, botname = process_xml(xml_path*"/gen.xml", multiple_bots = true)
 
     botindex = parse(Int64, match(r"[0-9]+", botname).match)
     botmorph = gen_archive[botindex,:,:,:]
@@ -309,9 +309,9 @@ function process_xml(xml_path; multiple_bots = false)
     if multiple_bots == true
         bestfit = xml_root["bestfit"][1]
         botname = content(bestfit["filename"][1])
-        append!(processed_xml, content(bestfit["fitness_score"][1]))
+        score = content(bestfit["fitness_score"][1])
 
-        return processed_xml, botname
+        return score, botname
     else
         detail = xml_root["detail"][1]
         biobots = get_elements_by_tagname(detail, "robot")
