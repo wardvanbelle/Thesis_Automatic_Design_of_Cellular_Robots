@@ -238,6 +238,7 @@ function fill_archive((cell_min,cell_max), (min_active_percentage, max_active_pe
 end
 
 function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_name = "")
+    foreach(rm, filter(endswith(".vxd"), readdir("../../Biobot_V1", join=true))) # make sure to remove all existing .vxd files
     AddBiobot(biobot_matrix, celltypes, (1,1,1))
     println("created biobot")
     WriteVXA("../../Biobot_V1") 
@@ -263,6 +264,7 @@ end
 
 function score_generation(gen_archive, celltypes, history_path, xml_path)
 
+    foreach(rm, filter(endswith(".vxd"), readdir("../../Biobot_V1", join=true))) # make sure to remove all existing .vxd files
     vxd = vxa2vxd.VXD()
 
     for i in 1:size(gen_archive)[1]
@@ -271,6 +273,8 @@ function score_generation(gen_archive, celltypes, history_path, xml_path)
         vxd.create_bot_from_vxa("../../Biobot_V1/base.vxa", minimize=true)
         vxd.write_to_xml(path="../../Biobot_V1/bot$(i).vxd")
     end
+
+    rm("../../Biobot_V1/robot.vxd") # make sure to remove this one, otherwise you might run into errors.
 
     run(pipeline(`./voxcraft-sim -i ../../Biobot_V1/ -o $(xml_path*"/gen.xml") -f`, stdout="$(history_path*"/gen.history")"));
 
