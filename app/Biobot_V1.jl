@@ -24,6 +24,7 @@ max_active_percentage = 21/27
 
 # MAP-Elites algorithm parameters
 num_iterations = 0
+bots_per_gen = 20
 max_iterations = 100 
 MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
 MAP_x_axis = Array(cell_min:cell_max)
@@ -58,28 +59,54 @@ while run_MAP_elites && num_iterations < max_iterations
     morphology1_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
     morphology1 = MAP[morphology1_pos] 
 
-    action = rand(["cross-over","deletion","mutation"])
+    gen_archive = zeros((bots_per_gen, biobot_size[1], biobot_size[2], biobot_size[3]))
 
-    if action == "deletion" && sum(morphology1 .!= 0) > cell_min # zorgt ervoor dat deletie niet kan als we al aan het min aantal cellen zitten.
-        new_morphology = deletion(morphology1)
-    elseif action == "mutation"
-        new_morphology = mutation(morphology1, length(celltypes))
-    else
-        morphology2 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))]
-        while morphology1 == morphology2
-            morphology2_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
-            morphology2 = MAP[morphology2_pos] 
+    if bots_per_gen == 1
+        action = rand(["cross-over","deletion","mutation"])
+
+        if action == "deletion" && sum(morphology1 .!= 0) > cell_min # zorgt ervoor dat deletie niet kan als we al aan het min aantal cellen zitten.
+            new_morphology = deletion(morphology1)
+        elseif action == "mutation"
+            new_morphology = mutation(morphology1, length(celltypes))
+        else
+            morphology2 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))]
+            while morphology1 == morphology2
+                morphology2_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
+                morphology2 = MAP[morphology2_pos] 
+            end
+            new_morphology = cross_over(morphology1, morphology2, cell_min, cell_max)
         end
-        new_morphology = cross_over(morphology1, morphology2, cell_min, cell_max)
+    else
+        for i in 1:bots_per_gen
+            action = rand(["cross-over","deletion","mutation"])
+
+            if action == "deletion" && sum(morphology1 .!= 0) > cell_min # zorgt ervoor dat deletie niet kan als we al aan het min aantal cellen zitten.
+                gen_archive[i,:,:,:] = deletion(morphology1)
+            elseif action == "mutation"
+                gen_archive[i,:,:,:] = mutation(morphology1, length(celltypes))
+            else
+                morphology2 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))]
+                while morphology1 == morphology2
+                    morphology2_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
+                    morphology2 = MAP[morphology2_pos] 
+                end
+                gen_archive[i,:,:,:] = cross_over(morphology1, morphology2, cell_min, cell_max)
+            end
+        end
     end
 
     # 3) score and characterize the newly created biobot
 
-    x_biobot, y_biobot = characterize_biobot(new_morphology, active_celltypes)
-    println("x_biobot = $(x_biobot), y_biobot = $(y_biobot)")
-    biobot_name = "biobot_"*string(x_biobot)*"_"*string(y_biobot)
-    biobot_score = score_biobot(new_morphology, celltypes, history_path, xml_path, save_name = biobot_name)
-
+    if bots_per_gen == 1
+        x_biobot, y_biobot = characterize_biobot(new_morphology, active_celltypes)
+        println("x_biobot = $(x_biobot), y_biobot = $(y_biobot)")
+        biobot_name = "biobot_"*string(x_biobot)*"_"*string(y_biobot)
+        biobot_score = score_biobot(new_morphology, celltypes, history_path, xml_path, save_name = biobot_name)
+    else
+        biobot_score, new_morphology = score_generation(gen_archive, celltypes, history_path, xml_path)
+        x_biobot, y_biobot = characterize_biobot(new_morphology, active_celltypes)
+        println("x_biobot = $(x_biobot), y_biobot = $(y_biobot)")
+    end
     # 4) Check if new biobot is better than the one present at it's place in the archive
 
     # change active_percentage to closest value on y-axis

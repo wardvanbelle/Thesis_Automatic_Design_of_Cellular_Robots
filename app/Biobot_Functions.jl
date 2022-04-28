@@ -1,4 +1,6 @@
-using Voxcraft, JSON, StatsBase, LightXML
+using Voxcraft, JSON, StatsBase, LightXML, PyCall
+push!(pyimport("sys")."path", "../../")
+vxa2vxd = pyimport("VXA_to_VXD")
 
 #---------------------------------------
 #        FUNCTIONS FOR SIMULATION
@@ -9,6 +11,8 @@ function AddBiobot(morphology, celltypes, originLoc)
 
     (xmax, ymax, zmax) = size(morphology)
     (xstart, ystart, zstart) = originLoc
+
+    @eval(Voxcraft, voxels = Dict()) # Until Voxcraft fixes this, I need to use this ducktape solution.
 
     for x in 1:xmax
         for y in 1:ymax
@@ -257,6 +261,27 @@ function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_nam
     return parse(Float64,string(score))
 end
 
+function score_generation(gen_archive, celltypes, history_path, xml_path)
+
+    vxd = vxa2vxd.VXD()
+
+    for i in 1:size(gen_archive)[1]
+        AddBiobot(gen_archive[i,:,:,:], celltypes, (1,1,1))
+        WriteVXA("../../Biobot_V1") 
+        vxd.create_bot_from_vxa("../../Biobot_V1/base.vxa", minimize=true)
+        vxd.write_to_xml(path="../../Biobot_V1/bot$(i).vxd")
+    end
+
+    run(pipeline(`./voxcraft-sim -i ../../Biobot_V1/ -o $(xml_path*"/gen.xml") -f`, stdout="$(history_path*"/gen.history")"));
+
+    score, botname = process_xml(xml_path*"/gen.xml", multiple_bots = true)[1]
+
+    botindex = parse(Int64, match(r"[0-9]+", botname).match)
+    botmorph = gen_archive[botindex,:,:,:]
+
+    return score, botmorph
+end
+
 function process_history(history_path, num_cells)
     raw_history = readlines(open(history_path))
 
@@ -277,16 +302,24 @@ function process_history(history_path, num_cells)
     return processed_history
 end
 
-function process_xml(xml_path)
+function process_xml(xml_path; multiple_bots = false)
     processed_xml = []
     xml_output = parse_file(xml_path)
     xml_root = root(xml_output)
-    detail = xml_root["detail"][1]
-    biobots = get_elements_by_tagname(detail, "robot")
+    if multiple_bots == true
+        bestfit = xml_root["bestfit"][1]
+        botname = content(bestfit["filename"][1])
+        append!(processed_xml, content(bestfit["fitness_score"][1]))
 
-    for biobot in biobots
-        append!(processed_xml,content(biobot["fitness_score"][1]))
+        return processed_xml, botname
+    else
+        detail = xml_root["detail"][1]
+        biobots = get_elements_by_tagname(detail, "robot")
+
+        for biobot in biobots
+            append!(processed_xml, content(biobot["fitness_score"][1]))
+        end
+
+        return processed_xml
     end
-
-    return processed_xml
 end
