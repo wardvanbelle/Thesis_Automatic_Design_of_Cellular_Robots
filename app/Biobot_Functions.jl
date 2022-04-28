@@ -223,7 +223,7 @@ function fill_archive((cell_min,cell_max), (min_active_percentage, max_active_pe
         end
     end
 
-    begin_percentage_filled = 0.3
+    begin_percentage_filled = 0.05
     num_picks = Int(ceil(length(par_combinations) * begin_percentage_filled))
 
     par_combinations = sample(par_combinations, num_picks, replace = false)
@@ -279,7 +279,7 @@ function score_generation(gen_archive, celltypes, history_path, xml_path)
     botindex = parse(Int64, match(r"[0-9]+", botname).match)
     botmorph = gen_archive[botindex,:,:,:]
 
-    return score, botmorph
+    return parse(Float64,string(score)), botmorph
 end
 
 function process_history(history_path, num_cells)
