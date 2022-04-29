@@ -24,7 +24,7 @@ max_active_percentage = 21/27
 
 # MAP-Elites algorithm parameters
 num_iterations = 0
-bots_per_gen = 20
+bots_per_gen = 10
 max_iterations = 100 
 MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
 MAP_x_axis = Array(cell_min:cell_max)
@@ -57,7 +57,7 @@ while run_MAP_elites && num_iterations < max_iterations
 
     # 2) do a random mutation/deletion/cross_over to make a new morphology
     morphology1_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
-    morphology1 = MAP[morphology1_pos] 
+    morphology1 = copy(MAP[morphology1_pos])
 
     gen_archive = zeros((bots_per_gen, biobot_size[1], biobot_size[2], biobot_size[3]))
 
@@ -69,10 +69,10 @@ while run_MAP_elites && num_iterations < max_iterations
         elseif action == "mutation"
             new_morphology = mutation(morphology1, length(celltypes))
         else
-            morphology2 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))]
+            morphology2 = copy(MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))])
             while morphology1 == morphology2
                 morphology2_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
-                morphology2 = MAP[morphology2_pos] 
+                morphology2 = copy(MAP[morphology2_pos])
             end
             new_morphology = cross_over(morphology1, morphology2, cell_min, cell_max)
         end
@@ -85,10 +85,10 @@ while run_MAP_elites && num_iterations < max_iterations
             elseif action == "mutation"
                 gen_archive[i,:,:,:] = mutation(morphology1, length(celltypes))
             else
-                morphology2 = MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))]
+                morphology2 = copy(MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))])
                 while morphology1 == morphology2
                     morphology2_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
-                    morphology2 = MAP[morphology2_pos] 
+                    morphology2 = copy(MAP[morphology2_pos])
                 end
                 gen_archive[i,:,:,:] = cross_over(morphology1, morphology2, cell_min, cell_max)
             end
@@ -144,6 +144,7 @@ if run_MAP_elites
     save_archive(MAP)
     println(MAP_x_axis)
     println(MAP_y_axis)
+    println(score_matrix)
 end
 
 
