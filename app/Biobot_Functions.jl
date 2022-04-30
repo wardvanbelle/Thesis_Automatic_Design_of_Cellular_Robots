@@ -333,7 +333,7 @@ function save_archive(archive)
     for i in 1:size(archive)[1]
         for j in 1:size(archive)[2]
             if any(archive[i,j] .!= 0)
-                AddBiobot(archive[i,:,:,:], celltypes, (1,1,1))
+                AddBiobot(archive[i,j], celltypes, (1,1,1))
                 WriteVXA("../../Biobot_V1/final_archive") 
                 vxd.create_bot_from_vxa("../../Biobot_V1/final_archive/base.vxa", minimize=true)
                 vxd.write_to_xml(path="../../Biobot_V1/final_archive/bot$(i)$(j).vxd")
