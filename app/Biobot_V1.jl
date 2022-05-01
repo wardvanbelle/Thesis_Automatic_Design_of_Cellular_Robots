@@ -49,7 +49,7 @@ while run_MAP_elites && num_iterations < max_iterations
         for i in 1:size(MAP,1)
             for j in 1:size(MAP,2)
                 if any(MAP[i,j] .!= 0)
-                    score_matrix[i,j] = score_biobot(MAP[i,j], celltypes, history_path, xml_path) 
+                    score_matrix[i,j] = score_biobot(copy(MAP[i,j]), celltypes, history_path, xml_path) 
                 end
             end
         end
@@ -116,13 +116,13 @@ while run_MAP_elites && num_iterations < max_iterations
     x_pos = findall(x->x==x_biobot, MAP_x_axis)[1]
 
     if biobot_score > score_matrix[x_pos, y_pos]
-        MAP[x_pos, y_pos] = new_morphology
+        MAP[x_pos, y_pos] = copy(new_morphology)
         score_matrix[x_pos, y_pos] = biobot_score
     end
 
     # if 10 iterations have passed, simulate best biobot and save
     if num_iterations % 10 == 0
-        cur_best_morphology = MAP[argmax(score_matrix)]
+        cur_best_morphology = copy(MAP[argmax(score_matrix)])
         cur_best_score = score_biobot(cur_best_morphology, celltypes, history_path, xml_path, save_name = "best_$(num_iterations)")
         mv("../../Biobot_V1/histories/best_$(num_iterations).history","/project/best_$(num_iterations).history")
         mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","/project/best_$(num_iterations).xml")
@@ -137,7 +137,7 @@ end
 
 if run_MAP_elites
     # 6) find optimal morphology and simulate + show history
-    best_morphology = MAP[argmax(score_matrix)]
+    best_morphology = copy(MAP[argmax(score_matrix)])
     best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot")
     println("best score = $best_score")
 

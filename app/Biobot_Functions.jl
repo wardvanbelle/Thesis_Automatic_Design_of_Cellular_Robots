@@ -330,6 +330,8 @@ end
 
 function save_archive(archive)
     mkdir("../../Biobot_V1/final_archive")
+    vxd = vxa2vxd.VXD()
+
     for i in 1:size(archive)[1]
         for j in 1:size(archive)[2]
             if any(archive[i,j] .!= 0)
