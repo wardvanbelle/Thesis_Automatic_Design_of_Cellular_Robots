@@ -223,8 +223,9 @@ function fill_archive((cell_min,cell_max), (min_active_percentage, max_active_pe
         end
     end
 
-    begin_percentage_filled = 0.05
-    num_picks = Int(ceil(length(par_combinations) * begin_percentage_filled))
+    #begin_percentage_filled = 0.05
+    #num_picks = Int(ceil(length(par_combinations) * begin_percentage_filled))
+    num_picks = 5 # we start out by generating 5 combinations
 
     par_combinations = sample(par_combinations, num_picks, replace = false)
 

@@ -15,7 +15,7 @@ mkdir build; cd build; cmake .. -DBOOST_INCLUDEDIR="/usr/include" -DBOOST_LIBRAR
 
 # run main biobot script
 cd ../../
-julia Biobot_V1.jl
+julia Biobot_V1.jl $1 $2 $3
 
 # move the files of the best result to the project folder
 mv ./Biobot_V1/histories/best_biobot.history /project/best_biobot.history

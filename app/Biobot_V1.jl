@@ -16,7 +16,7 @@ TempPeriod(2) # period of temprature
 celltypes, active_celltypes = import_celltypes("./Biobot_V1/test_database.JSON") 
 
 # Biobot parameters
-biobot_size = (3,3,3)
+biobot_size = Tuple(parse.(Int, split(chop(ARGS[3]; head=1, tail=1), ',')))
 cell_min = round((biobot_size[1]*biobot_size[2]*biobot_size[3])/10)*3
 cell_max = biobot_size[1]*biobot_size[2]*biobot_size[3]
 min_active_percentage = 9/27
@@ -24,8 +24,8 @@ max_active_percentage = 21/27
 
 # MAP-Elites algorithm parameters
 num_iterations = 0
-bots_per_gen = 5
-max_iterations = 30 
+bots_per_gen = parse(Int, ARGS[2])
+max_iterations = parse(Int, ARGS[1]) 
 MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
 MAP_x_axis = Array(cell_min:cell_max)
 
