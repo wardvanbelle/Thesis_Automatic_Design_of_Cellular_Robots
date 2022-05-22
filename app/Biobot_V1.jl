@@ -22,7 +22,7 @@ cell_max = biobot_size[1]*biobot_size[2]*biobot_size[3]
 min_active_percentage = 9/27
 max_active_percentage = 21/27
 
-# MAP-Elites algorithm parameters
+# archive-Elites algorithm parameters
 num_iterations = 0
 bots_per_gen = parse(Int, ARGS[2])
 max_iterations = parse(Int, ARGS[1]) 
@@ -34,7 +34,7 @@ history_path = "../../Biobot_V1/histories" # map where histories are stored
 xml_path = "../../Biobot_V1/xmls" # map where xmls are stored
 
 
-run_MAP_elites = true # change to true if you want to run the MAP-Elites algorithm
+run_MAP_elites = true # change to true if you want to run the archive-Elites algorithm
 
 if run_MAP_elites
     cd("./voxcraft-sim/build") # change to right folder
@@ -44,20 +44,20 @@ while run_MAP_elites && num_iterations < max_iterations
 
     # 1) fill archive + score begin archive
     if num_iterations < 1
-        global MAP = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes)
-        global score_matrix = zeros((size(MAP,1),size(MAP,2)))
-        for i in 1:size(MAP,1)
-            for j in 1:size(MAP,2)
-                if any(MAP[i,j] .!= 0)
-                    score_matrix[i,j] = score_biobot(copy(MAP[i,j]), celltypes, history_path, xml_path) 
+        global archive = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes)
+        global score_matrix = zeros((size(archive,1),size(archive,2)))
+        for i in 1:size(archive,1)
+            for j in 1:size(archive,2)
+                if any(archive[i,j] .!= 0)
+                    score_matrix[i,j] = score_biobot(copy(archive[i,j]), celltypes, history_path, xml_path) 
                 end
             end
         end
     end
 
     # 2) do a random mutation/deletion/cross_over to make a new morphology
-    morphology1_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
-    morphology1 = copy(MAP[morphology1_pos])
+    morphology1_pos = rand(findall(x -> x != zeros(biobot_size), archive))
+    morphology1 = copy(archive[morphology1_pos])
 
     gen_archive = zeros((bots_per_gen, biobot_size[1], biobot_size[2], biobot_size[3]))
 
@@ -69,10 +69,10 @@ while run_MAP_elites && num_iterations < max_iterations
         elseif action == "mutation"
             new_morphology = mutation(morphology1, length(celltypes))
         else
-            morphology2 = copy(MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))])
+            morphology2 = copy(archive[rand(1:size(archive,1)),rand(1:size(archive,2))])
             while morphology1 == morphology2
-                morphology2_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
-                morphology2 = copy(MAP[morphology2_pos])
+                morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
+                morphology2 = copy(archive[morphology2_pos])
             end
             new_morphology = cross_over(morphology1, morphology2, cell_min, cell_max)
         end
@@ -85,10 +85,10 @@ while run_MAP_elites && num_iterations < max_iterations
             elseif action == "mutation"
                 gen_archive[i,:,:,:] = mutation(morphology1, length(celltypes))
             else
-                morphology2 = copy(MAP[rand(1:size(MAP,1)),rand(1:size(MAP,2))])
+                morphology2 = copy(archive[rand(1:size(archive,1)),rand(1:size(archive,2))])
                 while morphology1 == morphology2
-                    morphology2_pos = rand(findall(x -> x != zeros(biobot_size), MAP))
-                    morphology2 = copy(MAP[morphology2_pos])
+                    morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
+                    morphology2 = copy(archive[morphology2_pos])
                 end
                 gen_archive[i,:,:,:] = cross_over(morphology1, morphology2, cell_min, cell_max)
             end
@@ -116,13 +116,13 @@ while run_MAP_elites && num_iterations < max_iterations
     x_pos = findall(x->x==x_biobot, MAP_x_axis)[1]
 
     if biobot_score > score_matrix[x_pos, y_pos]
-        MAP[x_pos, y_pos] = copy(new_morphology)
+        archive[x_pos, y_pos] = copy(new_morphology)
         score_matrix[x_pos, y_pos] = biobot_score
     end
 
     # if 10 iterations have passed, simulate best biobot and save
     if num_iterations % 10 == 0
-        cur_best_morphology = copy(MAP[argmax(score_matrix)])
+        cur_best_morphology = copy(archive[argmax(score_matrix)])
         cur_best_score = score_biobot(cur_best_morphology, celltypes, history_path, xml_path, save_name = "best_$(num_iterations)")
         mv("../../Biobot_V1/histories/best_$(num_iterations).history","/project/best_$(num_iterations).history")
         mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","/project/best_$(num_iterations).xml")
@@ -137,11 +137,11 @@ end
 
 if run_MAP_elites
     # 6) find optimal morphology and simulate + show history
-    best_morphology = copy(MAP[argmax(score_matrix)])
+    best_morphology = copy(archive[argmax(score_matrix)])
     best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot")
     println("best score = $best_score")
 
-    save_archive(MAP)
+    save_archive(archive)
     println(MAP_x_axis)
     println(MAP_y_axis)
     println(score_matrix)

@@ -1,4 +1,4 @@
-using Voxcraft, JSON, StatsBase, LightXML, PyCall
+using Voxcraft, JSON, StatsBase, LightXML, Distances, PyCall
 push!(pyimport("sys")."path", ".")
 vxa2vxd = pyimport("VXA_to_VXD")
 
@@ -71,8 +71,9 @@ function constricted_morphology(biobot_size, num_celltypes, active_celltypes, nu
 
     morphology = rand(1:num_celltypes, biobot_size)
     cellchances = rand(0:100, biobot_size)
-    cellchance = num_cells / (biobot_size[1] * biobot_size[2] * biobot_size[3])
+    cellchance = (num_cells / (biobot_size[1] * biobot_size[2] * biobot_size[3]))*100
     morphology[cellchances .> cellchance] .= 0
+
 
     cell_amount = sum(morphology .!= 0)
     active_cells = sum([sum(morphology .== i) for i in active_celltypes])
@@ -147,11 +148,41 @@ function import_celltypes(JSONfilepath)
     return celltypes, active_celltypes
 end
 
+function connect_clusters(morphology)
+    # 1. Give a unique number to all voxels
+    morph_clusters = copy(morphology)
+    morph_clusters[morph_clusters .!= 0] = Array(1:sum(morph_clusters .!= 0))
+
+    # 2. Iterate over the morphology until no number change
+    new_morph_clusters = zeros(size(morph_clusters))
+    while new_morph_clusters != morph_clusters
+        new_morph_clusters = copy(morph_clusters)
+        for pos in findall(morph_clusters .!= 0)
+            x,y,z = Tuple(pos)
+            neighbours = [(x+1,y,z),(x-1,y,z),(x,y+1,z),(x,y-1,z),(x,y,z+1),(x,y,z-1)]
+            filter!(e -> any(e .<= 0) == 0, neighbours) # filter all lower limits
+            filter!(e -> any(e .> size(morphology)) == 0, neighbours) # filter all upper limits
+            neighbours_value = [morph_clusters[CartesianIndex(neighbour)] for neighbour in neighbours if morph_clusters[CartesianIndex(neighbour)] != 0]
+            if !isempty(neighbours_value) && minimum(neighbours_value) < morph_clusters[pos]
+                morph_clusters[pos] = minimum(neighbours_value)
+            end
+        end
+    end
+
+    # 3. Find cells that need to be filled 
+    clusters = [i for i in unique(morph_clusters) if i != 0]
+
+    # 4. Fill these cells based on the active_percentage
+    # https://github.com/JuliaStats/Distances.jl/issues/177
+
+    return morph_clusters
+end
+
 #---------------------------------------
 #       FUNCTIONS FOR MAP-ELITES
 #---------------------------------------
 
-function biobot_disctance(morphology1, morphology2) 
+function biobot_distance(morphology1, morphology2) 
 
     distance = sum(morphology1 .!= morphology2)
 
@@ -166,7 +197,7 @@ function cross_over(morphology1, morphology2, cell_min, cell_max)
     new_morphology[chancematrix .<= 0.5] = morphology2[chancematrix .<= 0.5]
 
     if sum(new_morphology .!= 0) < cell_min || sum(new_morphology .!= 0) > cell_max
-        return morphology1
+        return copy(morphology1)
     else
         return new_morphology
     end
@@ -282,7 +313,7 @@ function score_generation(gen_archive, celltypes, history_path, xml_path)
     score, botname = process_xml(xml_path*"/gen.xml", multiple_bots = true)
 
     botindex = parse(Int64, match(r"[0-9]+", botname).match)
-    botmorph = gen_archive[botindex,:,:,:]
+    botmorph = copy(gen_archive[botindex,:,:,:])
 
     return parse(Float64,string(score)), botmorph
 end
@@ -344,6 +375,7 @@ function save_archive(archive)
         end
     end
 
-    run(`zip -r final_archive.zip ../../Biobot_V1/final_archive`)
+    mv("../../Biobot_V1/final_archive/","/project/final_archive/")
+    run(`zip -r final_archive.zip /project/final_archive`)
     mv("./final_archive.zip","/project/final_archive.zip")
 end
