@@ -56,9 +56,15 @@ while run_MAP_elites && num_iterations < max_iterations
         end
     end
 
+    println("In iteration $(num_iterations) the best biobot is at $(argmax(score_matrix))")
+    temp_morphology = copy(archive[argmax(score_matrix)])
+    temp_score = score_biobot(temp_morphology, celltypes, history_path, xml_path)
+    println("Its effective simulation score is: $(temp_score)")
+
     # 2) do a random mutation/deletion/cross_over to make a new morphology
     morphology1_pos = rand(findall(x -> x != zeros(biobot_size), archive))
     morphology1 = copy(archive[morphology1_pos])
+    println("morphology1: $(morphology1_pos)")
 
     gen_archive = zeros((bots_per_gen, biobot_size[1], biobot_size[2], biobot_size[3]))
 
@@ -74,9 +80,11 @@ while run_MAP_elites && num_iterations < max_iterations
             while morphology1 == morphology2
                 morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
                 morphology2 = copy(archive[morphology2_pos])
+                println("morphology2: $(morphology2_pos)")
             end
             new_morphology = cross_over(morphology1, morphology2, cell_min, cell_max)
         end
+        println("performed $(action)")
 
         cell_amount = sum(new_morphology .!= 0)
         active_cells = sum([sum(new_morphology .== i) for i in active_celltypes])
@@ -96,9 +104,12 @@ while run_MAP_elites && num_iterations < max_iterations
                 while morphology1 == morphology2
                     morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
                     morphology2 = copy(archive[morphology2_pos])
+                    println("morphology2: $(morphology2_pos)")
                 end
                 gen_archive[i,:,:,:] = cross_over(morphology1, morphology2, cell_min, cell_max)
             end
+
+            println("performed $(action)")
 
             cell_amount = sum(gen_archive[i,:,:,:] .!= 0)
             active_cells = sum([sum(gen_archive[i,:,:,:] .== i) for i in active_celltypes])
@@ -111,13 +122,11 @@ while run_MAP_elites && num_iterations < max_iterations
 
     if bots_per_gen == 1
         x_biobot, y_biobot = characterize_biobot(new_morphology, active_celltypes)
-        println("x_biobot = $(x_biobot), y_biobot = $(y_biobot)")
         biobot_name = "biobot_"*string(x_biobot)*"_"*string(y_biobot)
         biobot_score = score_biobot(new_morphology, celltypes, history_path, xml_path, save_name = biobot_name)
     else
         biobot_score, new_morphology = score_generation(gen_archive, celltypes, history_path, xml_path)
         x_biobot, y_biobot = characterize_biobot(new_morphology, active_celltypes)
-        println("x_biobot = $(x_biobot), y_biobot = $(y_biobot)")
     end
     # 4) Check if new biobot is better than the one present at it's place in the archive
 
