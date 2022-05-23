@@ -112,7 +112,7 @@ while run_MAP_elites && num_iterations < max_iterations
             println("performed $(action)")
 
             cell_amount = sum(gen_archive[i,:,:,:] .!= 0)
-            active_cells = sum([sum(gen_archive[i,:,:,:] .== i) for i in active_celltypes])
+            active_cells = sum([sum(gen_archive[i,:,:,:] .== k) for k in active_celltypes])
             percentage_active = active_cells/cell_amount
             gen_archive[i,:,:,:] = connect_clusters(gen_archive[i,:,:,:], active_celltypes, passive_celltypes, percentage_active)
         end
