@@ -56,7 +56,7 @@ while run_MAP_elites && num_iterations < max_iterations
         end
     end
 
-    println("In iteration $(num_iterations) the best biobot is at $(argmax(score_matrix))")
+    println("In iteration $(num_iterations) the best biobot with maximum(score_matrix) is at $(argmax(score_matrix))")
     temp_morphology = copy(archive[argmax(score_matrix)])
     temp_score = score_biobot(temp_morphology, celltypes, history_path, xml_path)
     println("Its effective simulation score is: $(temp_score)")

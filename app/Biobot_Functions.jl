@@ -308,6 +308,7 @@ end
 
 function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_name = "")
     foreach(rm, filter(endswith(".vxd"), readdir("../../Biobot_V1", join=true))) # make sure to remove all existing .vxd files
+    foreach(rm, filter(endswith(".vxa"), readdir("../../Biobot_V1", join=true)))
     AddBiobot(biobot_matrix, celltypes, (1,1,1))
     RecordStepSize(100)
     println("created biobot")
@@ -336,6 +337,7 @@ function score_generation(gen_archive, celltypes, history_path, xml_path)
 
     RecordStepSize(0)
     foreach(rm, filter(endswith(".vxd"), readdir("../../Biobot_V1", join=true))) # make sure to remove all existing .vxd files
+    foreach(rm, filter(endswith(".vxa"), readdir("../../Biobot_V1", join=true)))
     vxd = vxa2vxd.VXD()
 
     for i in 1:size(gen_archive)[1]
