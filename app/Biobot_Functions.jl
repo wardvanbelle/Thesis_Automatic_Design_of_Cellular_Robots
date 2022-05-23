@@ -117,6 +117,8 @@ function constricted_morphology(biobot_size, num_celltypes, active_celltypes, nu
         current_percentage = active_cells/cell_amount
     end
 
+    morphology = connect_clusters(morphology, active_celltypes, passive_celltypes, percentage_active)
+
     return morphology
 end
 
@@ -148,7 +150,7 @@ function import_celltypes(JSONfilepath)
     return celltypes, active_celltypes
 end
 
-function connect_clusters(morphology)
+function connect_clusters(morphology, active_celltypes, passive_celltypes, active_percentage)
     # 1. Give a unique number to all voxels
     morph_clusters = copy(morphology)
     morph_clusters[morph_clusters .!= 0] = Array(1:sum(morph_clusters .!= 0))
@@ -171,13 +173,48 @@ function connect_clusters(morphology)
 
     # 3. Find cells that need to be filled 
     clusters = [i for i in unique(morph_clusters) if i != 0]
+    holes = []
+    b = findall(morph_clusters .== clusters[1])
+    b = Tuple.(b)
+    for i in 2:length(clusters)
+        c = findall(morph_clusters .== clusters[i])
+        c = Tuple.(c)
+        distmat = pairwise(SqEuclidean(), b, c)
+        mindist = findfirst(distmat .== minimum(distmat))
+        bx,by,bz = b[mindist[1]]
+        cx,cy,cz = c[mindist[2]]
+
+        for x in bx:cx
+            append!(holes,[(x,by,bz)])
+        end
+        
+        for y in by:cy
+            append!(holes,[(cx,y,bz)])
+        end
+        
+        for z in bz:cz 
+            append!(holes,[(cx,cy,z)])
+        end
+    end
+
+    holes = unique(CartesianIndex.(holes))
 
     # 4. Fill these cells based on the active_percentage
-    # https://github.com/JuliaStats/Distances.jl/issues/177
+    fillers = zeros(length(holes))
+    active_chances = rand(0:100, length(holes)) ./ 100
+    fillers[active_chances .<= active_percentage] .= 1
+    for (hole, filler) in zip(holes, fillers)
+        if morphology[hole] == 0
+            if filler == 0
+                morphology[hole] = rand(passive_celltypes)
+            else
+                morphology[hole] = rand(active_celltypes)
+            end
+        end
+    end
 
-    return morph_clusters
+    return morphology
 end
-
 #---------------------------------------
 #       FUNCTIONS FOR MAP-ELITES
 #---------------------------------------

@@ -14,6 +14,7 @@ TempPeriod(2) # period of temprature
 
 # define the celltypes
 celltypes, active_celltypes = import_celltypes("./Biobot_V1/test_database.JSON") 
+passive_celltypes = [i for i in 1:length(celltypes) if !(i in active_celltypes)]
 
 # Biobot parameters
 biobot_size = Tuple(parse.(Int, split(chop(ARGS[3]; head=1, tail=1), ',')))
@@ -76,6 +77,12 @@ while run_MAP_elites && num_iterations < max_iterations
             end
             new_morphology = cross_over(morphology1, morphology2, cell_min, cell_max)
         end
+
+        cell_amount = sum(new_morphology .!= 0)
+        active_cells = sum([sum(new_morphology .== i) for i in active_celltypes])
+        percentage_active = active_cells/cell_amount
+        new_morphology = connect_clusters(new_morphology, active_celltypes, passive_celltypes, percentage_active)
+
     else
         for i in 1:bots_per_gen
             action = rand(["cross-over","deletion","mutation"])
@@ -92,6 +99,11 @@ while run_MAP_elites && num_iterations < max_iterations
                 end
                 gen_archive[i,:,:,:] = cross_over(morphology1, morphology2, cell_min, cell_max)
             end
+
+            cell_amount = sum(gen_archive[i,:,:,:] .!= 0)
+            active_cells = sum([sum(gen_archive[i,:,:,:] .== i) for i in active_celltypes])
+            percentage_active = active_cells/cell_amount
+            gen_archive[i,:,:,:] = connect_clusters(gen_archive[i,:,:,:], active_celltypes, passive_celltypes, percentage_active)
         end
     end
 
@@ -127,6 +139,10 @@ while run_MAP_elites && num_iterations < max_iterations
         mv("../../Biobot_V1/histories/best_$(num_iterations).history","/project/best_$(num_iterations).history")
         mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","/project/best_$(num_iterations).xml")
         println("Moved best biobot after $(num_iterations) to project folder.")
+        println("Its score was $(cur_best_score)")
+        println("Its morphology is:")
+        println(cur_best_morphology)
+        println("Its locations in the archive was: $(argmax(a))")
     end
 
     # 5) Update iteration counter
