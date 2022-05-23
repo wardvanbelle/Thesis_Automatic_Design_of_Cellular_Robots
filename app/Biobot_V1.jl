@@ -50,7 +50,7 @@ while run_MAP_elites && num_iterations < max_iterations
         for i in 1:size(archive,1)
             for j in 1:size(archive,2)
                 if any(archive[i,j] .!= 0)
-                    score_matrix[i,j] = score_biobot(copy(archive[i,j]), celltypes, history_path, xml_path) 
+                    score_matrix[i,j] = copy(score_biobot(copy(archive[i,j]), celltypes, history_path, xml_path))
                 end
             end
         end
@@ -129,7 +129,7 @@ while run_MAP_elites && num_iterations < max_iterations
 
     if biobot_score > score_matrix[x_pos, y_pos]
         archive[x_pos, y_pos] = copy(new_morphology)
-        score_matrix[x_pos, y_pos] = biobot_score
+        score_matrix[x_pos, y_pos] = copy(biobot_score)
     end
 
     # if 10 iterations have passed, simulate best biobot and save
@@ -139,8 +139,8 @@ while run_MAP_elites && num_iterations < max_iterations
         mv("../../Biobot_V1/histories/best_$(num_iterations).history","/project/best_$(num_iterations).history")
         mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","/project/best_$(num_iterations).xml")
         println("Moved best biobot after $(num_iterations) to project folder.")
-        println("Its score was")
-        println(cur_best_score)
+        println("Its score was $(cur_best_score)")
+        println("Its score in the score matrix was $(score_matrix[argmax(score_matrix)])")
         println("Its morphology is:")
         println(cur_best_morphology)
         println("Its locations in the archive was: $(argmax(score_matrix)))")
@@ -156,8 +156,7 @@ if run_MAP_elites
     # 6) find optimal morphology and simulate + show history
     best_morphology = copy(archive[argmax(score_matrix)])
     best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot")
-    println("best score = ")
-    println(best_score)
+    println("best score = $(best_score)")
 
     save_archive(archive)
     println(MAP_x_axis)

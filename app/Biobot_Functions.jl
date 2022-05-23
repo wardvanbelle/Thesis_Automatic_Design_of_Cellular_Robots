@@ -324,12 +324,12 @@ function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_nam
     
     # calculate score based on xml
     if isempty(save_name)
-        score = process_xml(xml_path*"/temp.xml")[1]
+        score = process_xml(xml_path*"/temp.xml")
     else
-        score = process_xml(xml_path*"/"*save_name*".xml")[1]
+        score = process_xml(xml_path*"/"*save_name*".xml")
     end
 
-    return parse(Float64,string(score))
+    return parse(Float64,join(score))
 end
 
 function score_generation(gen_archive, celltypes, history_path, xml_path)
