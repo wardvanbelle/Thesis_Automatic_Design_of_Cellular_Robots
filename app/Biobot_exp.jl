@@ -3,6 +3,7 @@
 #---------------------------------------
 
 using Voxcraft
+using DelimitedFiles
 
 include("./Biobot_Functions.jl")
 experiment_nr = parse(Int, ARGS[3])
