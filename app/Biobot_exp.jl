@@ -3,22 +3,23 @@
 #---------------------------------------
 
 using Voxcraft
-include("./Biobot_Functions.jl")
 
-# set simulation parameters
-SimTime(6) # simulation time
-EnableExpansion() # enables contraction and expansion of voxels
-EnableTemp() # enables the temprature that causes expansion/contraction
-TempAmp(1) # amplitude of temprature
-TempPeriod(2) # period of temprature
+include("./Biobot_Functions.jl")
+experiment_nr = parse(Int, ARGS[3])
+experiments = ["locomotion","collection","bloodtransport"]
+experiment = experiments[experiment_nr]
+include("./experimental_setups/$(experiment).jl")
+save_dir = "/project"
+
+if !isdir("$(save_dir)/$(experiment)")
+    mkdir("$(save_dir)/$(experiment)")
+end
 
 # define the celltypes
-celltypes, active_celltypes = import_celltypes("./Biobot_V1/test_database.JSON") 
+celltypes, active_celltypes = import_celltypes("./experimental_setups/$(experiment).JSON") 
 passive_celltypes = [i for i in 1:length(celltypes) if !(i in active_celltypes)]
 
 # Biobot parameters
-biobot_size = Tuple(parse.(Int, split(chop(ARGS[3]; head=1, tail=1), ',')))
-min_cell_percentage = 0.3
 cell_min = round((biobot_size[1]*biobot_size[2]*biobot_size[3])/10)*min_cell_percentage*10
 cell_max = biobot_size[1]*biobot_size[2]*biobot_size[3]
 min_active_percentage = 9/27
@@ -141,13 +142,10 @@ while run_MAP_elites && num_iterations < max_iterations
         println("scoring best biobot after $(num_iterations)")
         cur_best_morphology = copy(archive[argmax(score_matrix)])
         cur_best_score = score_biobot(cur_best_morphology, celltypes, history_path, xml_path, save_name = "best_$(num_iterations)")
-        mv("../../Biobot_V1/histories/best_$(num_iterations).history","/project/best_$(num_iterations).history")
-        mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","/project/best_$(num_iterations).xml")
-        println("Moved best biobot after $(num_iterations) to project folder.")
+        mv("../../Biobot_V1/histories/best_$(num_iterations).history","$(save_dir)/$(experiment)/best_$(num_iterations).history", force=true)
+        mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","$(save_dir)/$(experiment)/best_$(num_iterations).xml", force=true)
+        println("Moved best biobot after $(num_iterations) to experiment folder.")
         println("Its score was $(cur_best_score)")
-        println("Its score in the score matrix was $(score_matrix[argmax(score_matrix)])")
-        println("Its morphology is:")
-        println(cur_best_morphology)
         println("Its locations in the archive was: $(argmax(score_matrix)))")
     end
 
@@ -163,26 +161,11 @@ if run_MAP_elites
     best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot")
     println("best score = $(best_score)")
 
-    save_archive(archive, "/project")
+    mv("../../Biobot_V1/histories/best_biobot.history","$(save_dir)/$(experiment)/best_biobot.history", force=true)
+    mv("../../Biobot_V1/xmls/best_biobot.xml","$(save_dir)/$(experiment)/best_biobot.xml", force=true)     
+
+    save_archive(archive, "$(save_dir)/$(experiment)")
     println(MAP_x_axis)
     println(MAP_y_axis)
     println(score_matrix)
 end
-
-
-# TO DO
-# automatisch tonen zou eventueel kunnen via gebruik van commandline 'voxcraft-viz folder_name/test.history'
-
-#---------------------------------------
-#           TEST CORNER
-#---------------------------------------
-
-#test_morph = constricted_morphology((2,2,2), length(celltypes), active_celltypes, 6, 2/3)
-
-#test_score = score_biobot(test_morph, celltypes, "../../Biobot_V1/histories/curbiobot.history", "../../Biobot_V1/xmls/curbiobot.xml", save_name)
-#test_morph1 = rand_morphology((2,2,2),length(celltypes),100)
-#AddBiobot(test_morph1, celltypes, (1,1,1))
-#test_morph2 = rand_morphology((2,2,2),length(celltypes),100)
-#AddBiobot(test_morph2, celltypes, (3,3,1))
-#WriteVXA("Biobot_V1")
-# aanpassen van de fitness functie zou eventueel kunnen door de vxa aan te passen nadat die al gemaakt is.

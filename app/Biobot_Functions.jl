@@ -138,7 +138,7 @@ function import_celltypes(JSONfilepath)
         if "CTE" in keys(celltypesdict[cellname])
             cellCTE = celltypesdict[cellname]["CTE"]
             cellPhase = celltypesdict[cellname]["tempPhase"]
-            push!(celltypes, AddMaterial(E = cellE, RHO = cellRHO, CTE = cellCTE, tempPhase = cellPhase, RGBA = cellRGBA))
+            push!(celltypes, AddMaterial(E = cellE, RHO = cellRHO, CTE = cellCTE, tempPhase = cellPhase, RGBA = cellRGBA, uDynamic=0.5))
             push!(active_celltypes, celltypenum)
         else
             push!(celltypes, AddMaterial(E = cellE, RHO = cellRHO, RGBA = cellRGBA))
@@ -398,7 +398,7 @@ function process_xml(xml_path; multiple_bots = false)
     end
 end
 
-function save_archive(archive)
+function save_archive(archive, save_path)
     mkdir("../../Biobot_V1/final_archive")
     vxd = vxa2vxd.VXD()
 
@@ -413,7 +413,6 @@ function save_archive(archive)
         end
     end
 
-    mv("../../Biobot_V1/final_archive/","/project/final_archive/")
-    run(`zip -r final_archive.zip /project/final_archive`)
-    mv("./final_archive.zip","/project/final_archive.zip")
+    mv("../../Biobot_V1/final_archive/","$(save_path)/final_archive/")
+    run(`zip -r $(save_path)/final_archive.zip $(save_path)/final_archive`)
 end
