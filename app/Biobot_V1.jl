@@ -76,7 +76,8 @@ while run_MAP_elites && num_iterations < max_iterations
         elseif action == "mutation"
             new_morphology = mutation(morphology1, length(celltypes))
         else
-            morphology2 = copy(archive[rand(1:size(archive,1)),rand(1:size(archive,2))])
+            morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
+            morphology2 = copy(archive[morphology2_pos])
             while morphology1 == morphology2
                 morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
                 morphology2 = copy(archive[morphology2_pos])
@@ -100,7 +101,8 @@ while run_MAP_elites && num_iterations < max_iterations
             elseif action == "mutation"
                 gen_archive[i,:,:,:] = mutation(morphology1, length(celltypes))
             else
-                morphology2 = copy(archive[rand(1:size(archive,1)),rand(1:size(archive,2))])
+                morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
+                morphology2 = copy(archive[morphology2_pos])
                 while morphology1 == morphology2
                     morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
                     morphology2 = copy(archive[morphology2_pos])
