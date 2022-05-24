@@ -311,17 +311,14 @@ function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_nam
     foreach(rm, filter(endswith(".vxa"), readdir("../../Biobot_V1", join=true)))
     AddBiobot(biobot_matrix, celltypes, (1,1,1))
     RecordStepSize(100)
-    println("created biobot")
     WriteVXA("../../Biobot_V1") 
     
     # export vxa file to GPU and simulate
-    println("started simulating biobot")
     if isempty(save_name)
         run(pipeline(`./voxcraft-sim -i ../../Biobot_V1/ -o $(xml_path*"/temp.xml") -f`, stdout="$(history_path*"/temp.history")"));
     else
         run(pipeline(`./voxcraft-sim -i ../../Biobot_V1/ -o $(xml_path*"/"*save_name*".xml") -f`, stdout="$(history_path*"/"*save_name*".history")"));
     end
-    println("done simulating biobot")
     
     # calculate score based on xml
     if isempty(save_name)
