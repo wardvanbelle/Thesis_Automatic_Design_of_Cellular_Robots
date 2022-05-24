@@ -147,6 +147,9 @@ while run_MAP_elites && num_iterations < max_iterations
         println("Moved best biobot after $(num_iterations) to experiment folder.")
         println("Its score was $(cur_best_score)")
         println("Its locations in the archive was: $(argmax(score_matrix)))")
+        writedlm("../../Biobot_V1/score_matrix_gen$(num_iterations).csv",  score_matrix, ',')
+        mv("../../Biobot_V1/score_matrix_gen$(num_iterations).csv","$(save_dir)/$(experiment)/score_matrix_gen$(num_iterations).csv", force=true)
+
     end
 
     # 5) Update iteration counter
