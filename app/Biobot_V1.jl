@@ -104,8 +104,8 @@ while run_MAP_elites && num_iterations < max_iterations
                 while morphology1 == morphology2
                     morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
                     morphology2 = copy(archive[morphology2_pos])
-                    println("morphology2: $(morphology2_pos)")
                 end
+                println("morphology2: $(morphology2_pos)")
                 gen_archive[i,:,:,:] = cross_over(morphology1, morphology2, cell_min, cell_max)
             end
 

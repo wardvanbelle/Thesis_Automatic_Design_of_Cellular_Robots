@@ -343,7 +343,7 @@ function score_generation(gen_archive, celltypes, history_path, xml_path)
     for i in 1:size(gen_archive)[1]
         AddBiobot(gen_archive[i,:,:,:], celltypes, (1,1,1))
         WriteVXA("../../Biobot_V1") 
-        vxd.create_bot_from_vxa("../../Biobot_V1/base.vxa", minimize=true)
+        vxd.create_bot_from_vxa("../../Biobot_V1/base.vxa", minimize=false)
         vxd.write_to_xml(path="../../Biobot_V1/bot$(i).vxd")
     end
 
