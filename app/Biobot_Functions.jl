@@ -272,16 +272,14 @@ function characterize_biobot(morphology,active_celltypes)
     return cell_amount, percentage_active
 end
 
-function fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, num_celltypes, active_celltypes)
-    x_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage) # TO DO: nog niet volledig overtuigd van deze manier
-    y_axis = Array(cell_min:cell_max)
+function fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, num_celltypes, active_celltypes, x_axis, y_axis)
     num_rows = length(y_axis)
     num_cols = length(x_axis) 
     archive = fill(zeros(biobot_size),(num_rows, num_cols))
 
     # pick x random parameter combinations 
-    cell_options = cell_min:1:cell_max
-    percentage_options = min_active_percentage:(1/cell_min):max_active_percentage
+    cell_options = y_axis
+    percentage_options = x_axis
 
     par_combinations = []
 

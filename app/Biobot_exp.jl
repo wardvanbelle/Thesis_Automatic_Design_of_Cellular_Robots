@@ -30,8 +30,13 @@ max_active_percentage = 21/27
 num_iterations = 0
 bots_per_gen = parse(Int, ARGS[2])
 max_iterations = parse(Int, ARGS[1]) 
-MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
-MAP_x_axis = Array(cell_min:cell_max)
+if cell_min <= 10
+    MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
+else
+    MAP_y_axis = Array(min_active_percentage:0.1:max_active_percentage)
+end
+
+MAP_x_axis = Array(cell_min:ceil((cell_max - cell_min)/10):cell_max)
 
 # Other parameters
 history_path = "../../Biobot_V1/histories" # map where histories are stored
@@ -48,7 +53,7 @@ while run_MAP_elites && num_iterations < max_iterations
 
     # 1) fill archive + score begin archive
     if num_iterations < 1
-        global archive = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes)
+        global archive = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes, MAP_y_axis, MAP_x_axis)
         global score_matrix = zeros((size(archive,1),size(archive,2)))
         for i in 1:size(archive,1)
             for j in 1:size(archive,2)

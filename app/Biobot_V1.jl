@@ -46,7 +46,7 @@ while run_MAP_elites && num_iterations < max_iterations
 
     # 1) fill archive + score begin archive
     if num_iterations < 1
-        global archive = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes)
+        global archive = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes, MAP_y_axis, MAP_x_axis)
         global score_matrix = zeros((size(archive,1),size(archive,2)))
         for i in 1:size(archive,1)
             for j in 1:size(archive,2)
