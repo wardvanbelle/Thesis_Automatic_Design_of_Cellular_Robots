@@ -134,6 +134,7 @@ while run_MAP_elites && num_iterations < max_iterations
 
     # change active_percentage to closest value on y-axis
     y_biobot = MAP_y_axis[argmin(abs.(MAP_y_axis .- y_biobot))]
+    x_biobot = MAP_x_axis[argmin(abs.(MAP_x_axis .- x_biobot))]
 
     y_pos = findall(x->x==y_biobot, MAP_y_axis)[1]
     x_pos = findall(x->x==x_biobot, MAP_x_axis)[1]
