@@ -406,7 +406,7 @@ function save_archive(archive, save_path)
                 AddBiobot(archive[i,j], celltypes, (1,1,1))
                 WriteVXA("../../Biobot_V1/final_archive") 
                 vxd.create_bot_from_vxa("../../Biobot_V1/final_archive/base.vxa", minimize=true)
-                vxd.write_to_xml(path="../../Biobot_V1/final_archive/bot$(i)$(j).vxd")
+                vxd.write_to_xml(path="../../Biobot_V1/final_archive/bot$(i)_$(j).vxd")
             end
         end
     end
