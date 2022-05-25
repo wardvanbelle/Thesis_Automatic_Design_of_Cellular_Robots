@@ -7,7 +7,7 @@ using DelimitedFiles
 
 include("./Biobot_Functions.jl")
 experiment_nr = parse(Int, ARGS[3])
-experiments = ["locomotion","collection","bloodtransport"]
+experiments = ["locomotion","collection","locomotion_water"]
 experiment = experiments[experiment_nr]
 include("./experimental_setups/$(experiment).jl")
 save_dir = "/project"
@@ -58,7 +58,7 @@ while run_MAP_elites && num_iterations < max_iterations
         for i in 1:size(archive,1)
             for j in 1:size(archive,2)
                 if any(archive[i,j] .!= 0)
-                    score_matrix[i,j] = copy(score_biobot(copy(archive[i,j]), celltypes, history_path, xml_path))
+                    score_matrix[i,j] = copy(score_biobot(copy(archive[i,j]), celltypes, history_path, xml_path, fluid_env = FluidEnv, aggregate_drag_coef = AggregateDragCoef))
                 end
             end
         end
@@ -124,9 +124,9 @@ while run_MAP_elites && num_iterations < max_iterations
     if bots_per_gen == 1
         x_biobot, y_biobot = characterize_biobot(new_morphology, active_celltypes)
         biobot_name = "biobot_"*string(x_biobot)*"_"*string(y_biobot)
-        biobot_score = score_biobot(new_morphology, celltypes, history_path, xml_path, save_name = biobot_name)
+        biobot_score = score_biobot(new_morphology, celltypes, history_path, xml_path, save_name = biobot_name, fluid_env = FluidEnv, aggregate_drag_coef = AggregateDragCoef)
     else
-        biobot_score, new_morphology = score_generation(gen_archive, celltypes, history_path, xml_path)
+        biobot_score, new_morphology = score_generation(gen_archive, celltypes, history_path, xml_path, fluid_env = FluidEnv, aggregate_drag_coef = AggregateDragCoef)
         x_biobot, y_biobot = characterize_biobot(new_morphology, active_celltypes)
     end
     println("ended scoring proces for iteration $(num_iterations)")
@@ -148,7 +148,7 @@ while run_MAP_elites && num_iterations < max_iterations
     if num_iterations % 10 == 0
         println("scoring best biobot after $(num_iterations)")
         cur_best_morphology = copy(archive[argmax(score_matrix)])
-        cur_best_score = score_biobot(cur_best_morphology, celltypes, history_path, xml_path, save_name = "best_$(num_iterations)")
+        cur_best_score = score_biobot(cur_best_morphology, celltypes, history_path, xml_path, save_name = "best_$(num_iterations)", fluid_env = FluidEnv, aggregate_drag_coef = AggregateDragCoef)
         mv("../../Biobot_V1/histories/best_$(num_iterations).history","$(save_dir)/$(experiment)/best_$(num_iterations).history", force=true)
         mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","$(save_dir)/$(experiment)/best_$(num_iterations).xml", force=true)
         println("Moved best biobot after $(num_iterations) to experiment folder.")
@@ -168,7 +168,7 @@ end
 if run_MAP_elites
     # 6) find optimal morphology and simulate + show history
     best_morphology = copy(archive[argmax(score_matrix)])
-    best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot")
+    best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot", fluid_env = FluidEnv, aggregate_drag_coef = AggregateDragCoef)
     println("best score = $(best_score)")
 
     mv("../../Biobot_V1/histories/best_biobot.history","$(save_dir)/$(experiment)/best_biobot.history", force=true)

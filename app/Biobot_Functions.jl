@@ -304,12 +304,15 @@ function fill_archive((cell_min,cell_max), (min_active_percentage, max_active_pe
     return archive
 end
 
-function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_name = "")
+function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_name = "", fluid_env = false, aggregate_drag_coef = 0)
     foreach(rm, filter(endswith(".vxd"), readdir("../../Biobot_V1", join=true))) # make sure to remove all existing .vxd files
     foreach(rm, filter(endswith(".vxa"), readdir("../../Biobot_V1", join=true)))
     AddBiobot(biobot_matrix, celltypes, (1,1,1))
     RecordStepSize(100)
     WriteVXA("../../Biobot_V1") 
+    if fluid_env
+        add_fluid_env("../../Biobot_V1/base.vxa", aggregate_drag_coef)
+    end
     
     # export vxa file to GPU and simulate
     if isempty(save_name)
@@ -328,7 +331,7 @@ function score_biobot(biobot_matrix, celltypes, history_path, xml_path; save_nam
     return parse(Float64,join(score))
 end
 
-function score_generation(gen_archive, celltypes, history_path, xml_path)
+function score_generation(gen_archive, celltypes, history_path, xml_path; fluid_env = false, aggregate_drag_coef = 0)
 
     RecordStepSize(0)
     foreach(rm, filter(endswith(".vxd"), readdir("../../Biobot_V1", join=true))) # make sure to remove all existing .vxd files
@@ -337,7 +340,10 @@ function score_generation(gen_archive, celltypes, history_path, xml_path)
 
     for i in 1:size(gen_archive)[1]
         AddBiobot(gen_archive[i,:,:,:], celltypes, (1,1,1))
-        WriteVXA("../../Biobot_V1") 
+        WriteVXA("../../Biobot_V1")
+        if fluid_env
+            add_fluid_env("../../Biobot_V1/base.vxa", aggregate_drag_coef)
+        end
         vxd.create_bot_from_vxa("../../Biobot_V1/base.vxa", minimize=false)
         vxd.write_to_xml(path="../../Biobot_V1/bot$(i).vxd")
     end
@@ -413,4 +419,15 @@ function save_archive(archive, save_path)
 
     mv("../../Biobot_V1/final_archive/","$(save_path)/final_archive/")
     run(`zip -r $(save_path)/final_archive.zip $(save_path)/final_archive`)
+end
+
+function add_fluid_env(vxapath, aggregate_drag_coef)
+    aquavxa = parse_file(vxapath)
+    aqua_root = root(aquavxa)
+    environment  = aqua_root[environment][1]
+    fluid_env = new_child(environment, "FluidEnvironment")
+    add_text(fluid_env, 1)
+    aggregate = new_child(environment, "AggregateDragCoefficient")
+    add_text(aggregate, aggregate_drag_coef)
+    save_file(aquavxa, vxapath)
 end
