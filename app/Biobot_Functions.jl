@@ -426,7 +426,7 @@ function add_fluid_env(vxapath, aggregate_drag_coef)
     aqua_root = root(aquavxa)
     environment  = aqua_root["Environment"][1]
     fluid_env = new_child(environment, "FluidEnvironment")
-    add_text(fluid_env, 1)
+    add_text(fluid_env, "1")
     aggregate = new_child(environment, "AggregateDragCoefficient")
     add_text(aggregate, aggregate_drag_coef)
     save_file(aquavxa, vxapath)
