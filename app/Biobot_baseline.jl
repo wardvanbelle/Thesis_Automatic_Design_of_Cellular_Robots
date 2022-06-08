@@ -127,7 +127,7 @@ while run_Baseline && num_iterations < max_iterations
 
     # change active_percentage to closest value on y-axis
     if biobot_score > best_score
-        best_morphology = copy(new_morphology)
+        best_morph = copy(new_morphology)
         best_score = copy(biobot_score)
     end
 
