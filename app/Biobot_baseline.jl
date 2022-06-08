@@ -3,22 +3,25 @@
 #---------------------------------------
 
 using Voxcraft
-include("./Biobot_Functions.jl")
+using DelimitedFiles
 
-# set simulation parameters
-SimTime(6) # simulation time
-EnableExpansion() # enables contraction and expansion of voxels
-EnableTemp() # enables the temprature that causes expansion/contraction
-TempAmp(1) # amplitude of temprature
-TempPeriod(2) # period of temprature
+include("./Biobot_Functions.jl")
+experiment_nr = parse(Int, ARGS[3])
+experiments = ["locomotion_baseline","collection_baseline","locomotion_water_baseline"]
+experiment = experiments[experiment_nr]
+experiment_setup = split(experiment,"_")[1]
+include("./experimental_setups/$(experiment_setup).jl")
+save_dir = "/project"
+
+if !isdir("$(save_dir)/$(experiment)")
+    mkdir("$(save_dir)/$(experiment)")
+end
 
 # define the celltypes
-celltypes, active_celltypes = import_celltypes("./Biobot_V1/test_database.JSON") 
+celltypes, active_celltypes = import_celltypes("./experimental_setups/$(experiment_setup).JSON") 
 passive_celltypes = [i for i in 1:length(celltypes) if !(i in active_celltypes)]
 
 # Biobot parameters
-biobot_size = Tuple(parse.(Int, split(chop(ARGS[3]; head=1, tail=1), ',')))
-min_cell_percentage = 0.3
 cell_min = round((biobot_size[1]*biobot_size[2]*biobot_size[3])/10)*min_cell_percentage*10
 cell_max = biobot_size[1]*biobot_size[2]*biobot_size[3]
 min_active_percentage = 9/27
@@ -28,38 +31,39 @@ max_active_percentage = 21/27
 num_iterations = 0
 bots_per_gen = parse(Int, ARGS[2])
 max_iterations = parse(Int, ARGS[1]) 
-MAP_y_axis = Array(min_active_percentage:(1/cell_min):max_active_percentage)
-MAP_x_axis = Array(cell_min:cell_max)
+if cell_min <= 10
+    percentage_options = Array(min_active_percentage:(1/cell_min):max_active_percentage)
+else
+    percentage_options = Array(min_active_percentage:0.1:max_active_percentage)
+end
+
+cell_options = Array(cell_min:ceil((cell_max - cell_min)/10):cell_max)
 
 # Other parameters
 history_path = "../../Biobot_V1/histories" # map where histories are stored
 xml_path = "../../Biobot_V1/xmls" # map where xmls are stored
 
 
-run_MAP_elites = true # change to true if you want to run the archive-Elites algorithm
+run_Baseline = true # change to true if you want to run the archive-Elites algorithm
 
-if run_MAP_elites
+if run_Baseline
     cd("./voxcraft-sim/build") # change to right folder
 end
 
-while run_MAP_elites && num_iterations < max_iterations
+while run_Baseline && num_iterations < max_iterations
 
     # 1) fill archive + score begin archive
     if num_iterations < 1
-        global archive = fill_archive((cell_min,cell_max), (min_active_percentage, max_active_percentage), biobot_size, length(celltypes), active_celltypes, MAP_y_axis, MAP_x_axis)
-        global score_matrix = zeros((size(archive,1),size(archive,2)))
-        for i in 1:size(archive,1)
-            for j in 1:size(archive,2)
-                if any(archive[i,j] .!= 0)
-                    score_matrix[i,j] = copy(score_biobot(copy(archive[i,j]), celltypes, history_path, xml_path))
-                end
-            end
-        end
+        # pick a random parameter combinations 
+        num_cells = rand(cell_options)
+        active_percentage = rand(percentage_options)
+
+        best_morph = constricted_morphology(biobot_size, num_celltypes, active_celltypes, num_cells, active_percentage)
+        best_score = score_biobot(best_morph, celltypes, history_path, xml_path)
     end
 
     # 2) do a random mutation/deletion/cross_over to make a new morphology
-    morphology1_pos = rand(findall(x -> x != zeros(biobot_size), archive))
-    morphology1 = copy(archive[morphology1_pos])
+    morphology1 = copy(best_morph)
 
     gen_archive = zeros((bots_per_gen, biobot_size[1], biobot_size[2], biobot_size[3]))
 
@@ -71,12 +75,9 @@ while run_MAP_elites && num_iterations < max_iterations
         elseif action == "mutation"
             new_morphology = mutation(morphology1, length(celltypes))
         else
-            morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
-            morphology2 = copy(archive[morphology2_pos])
-            while morphology1 == morphology2
-                morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
-                morphology2 = copy(archive[morphology2_pos])
-            end
+            num_cells = rand(cell_options)
+            active_percentage = rand(percentage_options)
+            morphology2 = constricted_morphology(biobot_size, num_celltypes, active_celltypes, num_cells, active_percentage)
             new_morphology = cross_over(morphology1, morphology2, cell_min, cell_max)
         end
 
@@ -94,12 +95,10 @@ while run_MAP_elites && num_iterations < max_iterations
             elseif action == "mutation"
                 gen_archive[i,:,:,:] = mutation(morphology1, length(celltypes))
             else
-                morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
-                morphology2 = copy(archive[morphology2_pos])
-                while morphology1 == morphology2
-                    morphology2_pos = rand(findall(x -> x != zeros(biobot_size), archive))
-                    morphology2 = copy(archive[morphology2_pos])
-                end
+                num_cells = rand(cell_options)
+                active_percentage = rand(percentage_options)
+                morphology2 = constricted_morphology(biobot_size, num_celltypes, active_celltypes, num_cells, active_percentage)
+                new_morphology = cross_over(morphology1, morphology2, cell_min, cell_max)
                 gen_archive[i,:,:,:] = cross_over(morphology1, morphology2, cell_min, cell_max)
             end
 
@@ -126,29 +125,24 @@ while run_MAP_elites && num_iterations < max_iterations
     # 4) Check if new biobot is better than the one present at it's place in the archive
 
     # change active_percentage to closest value on y-axis
-    y_biobot = MAP_y_axis[argmin(abs.(MAP_y_axis .- y_biobot))]
-
-    y_pos = findall(x->x==y_biobot, MAP_y_axis)[1]
-    x_pos = findall(x->x==x_biobot, MAP_x_axis)[1]
-
-    if biobot_score > score_matrix[x_pos, y_pos]
-        archive[x_pos, y_pos] = copy(new_morphology)
-        score_matrix[x_pos, y_pos] = copy(biobot_score)
+    if biobot_score > best_score
+        best_morphology = copy(new_morphology)
+        best_score = copy(biobot_score)
     end
 
     # if 10 iterations have passed, simulate best biobot and save
     if num_iterations % 10 == 0
         println("scoring best biobot after $(num_iterations)")
-        cur_best_morphology = copy(archive[argmax(score_matrix)])
-        cur_best_score = score_biobot(cur_best_morphology, celltypes, history_path, xml_path, save_name = "best_$(num_iterations)")
-        mv("../../Biobot_V1/histories/best_$(num_iterations).history","/project/best_$(num_iterations).history")
-        mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","/project/best_$(num_iterations).xml")
-        println("Moved best biobot after $(num_iterations) to project folder.")
+        cur_best_morphology = copy(best_morphology)
+        cur_best_score = score_biobot(cur_best_morphology, celltypes, history_path, xml_path, save_name = "best_$(num_iterations)", fluid_env = FluidEnv, aggregate_drag_coef = AggregateDragCoef)
+        mv("../../Biobot_V1/histories/best_$(num_iterations).history","$(save_dir)/$(experiment)/best_$(num_iterations).history", force=true)
+        mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","$(save_dir)/$(experiment)/best_$(num_iterations).xml", force=true)
+        println("Moved best biobot after $(num_iterations) to experiment folder.")
         println("Its score was $(cur_best_score)")
-        println("Its score in the score matrix was $(score_matrix[argmax(score_matrix)])")
-        println("Its morphology is:")
-        println(cur_best_morphology)
         println("Its locations in the archive was: $(argmax(score_matrix)))")
+        writedlm("../../Biobot_V1/score_matrix_gen$(num_iterations).csv",  score_matrix, ',')
+        mv("../../Biobot_V1/score_matrix_gen$(num_iterations).csv","$(save_dir)/$(experiment)/score_matrix_gen$(num_iterations).csv", force=true)
+
     end
 
     # 5) Update iteration counter
@@ -157,32 +151,17 @@ while run_MAP_elites && num_iterations < max_iterations
 
 end
 
-if run_MAP_elites
+if run_Baseline
     # 6) find optimal morphology and simulate + show history
-    best_morphology = copy(archive[argmax(score_matrix)])
-    best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot")
+    best_morphology = copy(best_morphology)
+    best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot", fluid_env = FluidEnv, aggregate_drag_coef = AggregateDragCoef)
     println("best score = $(best_score)")
 
-    save_archive(archive, "/project")
+    mv("../../Biobot_V1/histories/best_biobot.history","$(save_dir)/$(experiment)/best_biobot.history", force=true)
+    mv("../../Biobot_V1/xmls/best_biobot.xml","$(save_dir)/$(experiment)/best_biobot.xml", force=true)     
+
+    save_archive(archive, "$(save_dir)/$(experiment)")
     println(MAP_x_axis)
     println(MAP_y_axis)
     println(score_matrix)
 end
-
-
-# TO DO
-# automatisch tonen zou eventueel kunnen via gebruik van commandline 'voxcraft-viz folder_name/test.history'
-
-#---------------------------------------
-#           TEST CORNER
-#---------------------------------------
-
-#test_morph = constricted_morphology((2,2,2), length(celltypes), active_celltypes, 6, 2/3)
-
-#test_score = score_biobot(test_morph, celltypes, "../../Biobot_V1/histories/curbiobot.history", "../../Biobot_V1/xmls/curbiobot.xml", save_name)
-#test_morph1 = rand_morphology((2,2,2),length(celltypes),100)
-#AddBiobot(test_morph1, celltypes, (1,1,1))
-#test_morph2 = rand_morphology((2,2,2),length(celltypes),100)
-#AddBiobot(test_morph2, celltypes, (3,3,1))
-#WriteVXA("Biobot_V1")
-# aanpassen van de fitness functie zou eventueel kunnen door de vxa aan te passen nadat die al gemaakt is.
