@@ -140,10 +140,7 @@ while run_Baseline && num_iterations < max_iterations
         mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","$(save_dir)/$(experiment)/best_$(num_iterations).xml", force=true)
         println("Moved best biobot after $(num_iterations) to experiment folder.")
         println("Its score was $(cur_best_score)")
-        println("Its locations in the archive was: $(argmax(score_matrix)))")
-        writedlm("../../Biobot_V1/score_matrix_gen$(num_iterations).csv",  score_matrix, ',')
-        mv("../../Biobot_V1/score_matrix_gen$(num_iterations).csv","$(save_dir)/$(experiment)/score_matrix_gen$(num_iterations).csv", force=true)
-
+        println("Its locations in the archive was: $(best_score)")
     end
 
     # 5) Update iteration counter
@@ -160,9 +157,4 @@ if run_Baseline
 
     mv("../../Biobot_V1/histories/best_biobot.history","$(save_dir)/$(experiment)/best_biobot.history", force=true)
     mv("../../Biobot_V1/xmls/best_biobot.xml","$(save_dir)/$(experiment)/best_biobot.xml", force=true)     
-
-    save_archive(archive, "$(save_dir)/$(experiment)")
-    println(MAP_x_axis)
-    println(MAP_y_axis)
-    println(score_matrix)
 end
