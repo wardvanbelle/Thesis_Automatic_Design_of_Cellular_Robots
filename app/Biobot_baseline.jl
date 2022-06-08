@@ -134,7 +134,7 @@ while run_Baseline && num_iterations < max_iterations
     # if 10 iterations have passed, simulate best biobot and save
     if num_iterations % 10 == 0
         println("scoring best biobot after $(num_iterations)")
-        cur_best_morphology = copy(best_morphology)
+        cur_best_morphology = copy(best_morph)
         cur_best_score = score_biobot(cur_best_morphology, celltypes, history_path, xml_path, save_name = "best_$(num_iterations)", fluid_env = FluidEnv, aggregate_drag_coef = AggregateDragCoef)
         mv("../../Biobot_V1/histories/best_$(num_iterations).history","$(save_dir)/$(experiment)/best_$(num_iterations).history", force=true)
         mv("../../Biobot_V1/xmls/best_$(num_iterations).xml","$(save_dir)/$(experiment)/best_$(num_iterations).xml", force=true)
