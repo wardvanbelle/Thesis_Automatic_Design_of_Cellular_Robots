@@ -20,6 +20,7 @@ end
 # define the celltypes
 celltypes, active_celltypes = import_celltypes("./experimental_setups/$(experiment_setup).JSON") 
 passive_celltypes = [i for i in 1:length(celltypes) if !(i in active_celltypes)]
+num_celltypes = len(celltypes)
 
 # Biobot parameters
 cell_min = round((biobot_size[1]*biobot_size[2]*biobot_size[3])/10)*min_cell_percentage*10
