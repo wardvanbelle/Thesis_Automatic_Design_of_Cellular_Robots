@@ -59,8 +59,8 @@ while run_Baseline && num_iterations < max_iterations
         num_cells = rand(cell_options)
         active_percentage = rand(percentage_options)
 
-        best_morph = constricted_morphology(biobot_size, num_celltypes, active_celltypes, num_cells, active_percentage)
-        best_score = score_biobot(best_morph, celltypes, history_path, xml_path)
+        global best_morph = constricted_morphology(biobot_size, num_celltypes, active_celltypes, num_cells, active_percentage)
+        global best_score = score_biobot(best_morph, celltypes, history_path, xml_path)
     end
 
     # 2) do a random mutation/deletion/cross_over to make a new morphology
