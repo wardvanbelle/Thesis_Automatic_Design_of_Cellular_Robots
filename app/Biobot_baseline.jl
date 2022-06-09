@@ -7,9 +7,9 @@ using DelimitedFiles
 
 include("./Biobot_Functions.jl")
 experiment_nr = parse(Int, ARGS[3])
-experiments = ["locomotion_baseline","collection_baseline","locomotion_water_baseline"]
+experiments = ["locomotion-baseline","collection-baseline","locomotion_water-baseline"]
 experiment = experiments[experiment_nr]
-experiment_setup = split(experiment,"_")[1]
+experiment_setup = split(experiment,"-")[1]
 include("./experimental_setups/$(experiment_setup).jl")
 save_dir = "/project"
 
@@ -151,7 +151,7 @@ end
 
 if run_Baseline
     # 6) find optimal morphology and simulate + show history
-    best_morphology = copy(best_morphology)
+    best_morphology = copy(best_morph)
     best_score = score_biobot(best_morphology, celltypes, history_path, xml_path, save_name = "best_biobot", fluid_env = FluidEnv, aggregate_drag_coef = AggregateDragCoef)
     println("best score = $(best_score)")
 
